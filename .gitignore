@@ -5,6 +5,7 @@
 *.dylib
 *.test
 *.out
+.idea/
 go.work
 .idea/**/workspace.xml
 .idea/**/tasks.xml
