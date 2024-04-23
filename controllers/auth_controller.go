@@ -1,19 +1,17 @@
 package controllers
 
 import (
+	"activity-tracker-api/middleware"
 	"activity-tracker-api/models"
 	"activity-tracker-api/storage"
 	"context"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"google.golang.org/api/idtoken"
 	"os"
 )
 
 func SetupAuthController(app *fiber.App, userRepo storage.UserRepository) {
-	app.Post("/login", func(c *fiber.Ctx) error {
-		return login(c, userRepo)
-	})
+	app.Post("/login", func(c *fiber.Ctx) error { return login(c, userRepo) })
 }
 
 func login(c *fiber.Ctx, userRepo storage.UserRepository) error {
@@ -44,18 +42,24 @@ func login(c *fiber.Ctx, userRepo storage.UserRepository) error {
 	}
 
 	if dbUser == nil {
-		if err := userRepo.Insert(&user); err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
-		}
-
-		log.Info("User registered. ", user.Email)
+		err = userRepo.Insert(&user)
 	} else {
-		if err := userRepo.Update(&user); err != nil {
-			log.Error("User update error. ", err)
-		}
-
-		log.Info("User login. ", user.Email)
+		err = userRepo.Update(&user)
 	}
 
-	return nil
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
+	}
+
+	token, err := middleware.CreateUserJWT(user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
+	}
+
+	response := models.UserTokenResponse{
+		User:  user,
+		Token: token,
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response)
 }

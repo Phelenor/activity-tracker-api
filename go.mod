@@ -3,7 +3,9 @@ module activity-tracker-api
 go 1.22
 
 require (
+	github.com/gofiber/contrib/jwt v1.0.9
 	github.com/gofiber/fiber/v2 v2.52.4
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/joho/godotenv v1.5.1
 	google.golang.org/api v0.176.0
 	gorm.io/driver/postgres v1.5.7
@@ -14,6 +16,7 @@ require (
 	cloud.google.com/go/auth v0.2.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.1 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
+	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
