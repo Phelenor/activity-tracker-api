@@ -1,20 +1,34 @@
 package controllers
 
 import (
-	"activity-tracker-api/middleware"
 	"activity-tracker-api/models"
 	"activity-tracker-api/storage"
 	"context"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/api/idtoken"
 	"os"
+	"time"
 )
 
-func SetupAuthController(app *fiber.App, userRepo storage.UserRepository) {
-	app.Post("/login", func(c *fiber.Ctx) error { return login(c, userRepo) })
+func buildUserJWT(user models.User) (string, error) {
+	claims := jwt.MapClaims{
+		"id":    user.Id,
+		"email": user.Email,
+		"exp":   time.Now().Add(time.Hour * 24 * 7).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+
+	return signed, err
 }
 
-func login(c *fiber.Ctx, userRepo storage.UserRepository) error {
+type AuthController struct {
+	UserRepo storage.UserRepository
+}
+
+func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 	request := models.LoginRequest{}
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid request.")
@@ -36,28 +50,56 @@ func login(c *fiber.Ctx, userRepo storage.UserRepository) error {
 		ImageUrl: payload.Claims["picture"].(string),
 	}
 
-	dbUser, err := userRepo.GetByID(user.Id)
+	dbUser, err := controller.UserRepo.GetByID(user.Id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
 	if dbUser == nil {
-		err = userRepo.Insert(&user)
+		err = controller.UserRepo.Insert(&user)
 	} else {
-		err = userRepo.Update(&user)
+		err = controller.UserRepo.Update(&user)
 	}
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
-	token, err := middleware.CreateUserJWT(user)
+	token, err := buildUserJWT(user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
 	response := models.UserTokenResponse{
 		User:  user,
+		Token: token,
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response)
+}
+
+func (controller *AuthController) TokenRefreshHandler(c *fiber.Ctx) error {
+	request := models.TokenRefreshRequest{}
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid request.")
+	}
+
+	user, err := controller.UserRepo.GetByID(request.Id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
+	}
+
+	if user == nil {
+		return c.Status(fiber.StatusBadRequest).SendString("User not found.")
+	}
+
+	token, err := buildUserJWT(*user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
+	}
+
+	response := models.UserTokenResponse{
+		User:  *user,
 		Token: token,
 	}
 

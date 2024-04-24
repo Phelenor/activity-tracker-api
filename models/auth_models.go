@@ -5,6 +5,10 @@ type LoginRequest struct {
 	Nonce   string `json:"nonce"`
 }
 
+type TokenRefreshRequest struct {
+	Id string `json:"id"`
+}
+
 type UserTokenResponse struct {
 	User  User   `json:"user"`
 	Token string `json:"token"`
