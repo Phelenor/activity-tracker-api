@@ -4,14 +4,11 @@ import (
 	"activity-tracker-api/controllers"
 	"activity-tracker-api/database"
 	"activity-tracker-api/storage"
-	"fmt"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	"os"
-	"time"
 )
 
 func main() {
@@ -37,22 +34,6 @@ func startFiberServer(userRepository storage.UserRepository) {
 	app.Use(jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(os.Getenv("JWT_SECRET"))},
 	}))
-
-	app.Use(func(c *fiber.Ctx) error {
-		user := c.Locals("user").(*jwt.Token)
-		claims, ok := user.Claims.(jwt.MapClaims)
-		if !ok {
-			return c.Next()
-		}
-
-		expiry := claims["exp"].(float64)
-		expiresIn := int32(time.Unix(int64(expiry), 0).Sub(time.Now()).Hours())
-		if expiresIn < 24 {
-			c.Set("X-Token-Expiry", fmt.Sprintf("Expires in %d hours", expiresIn))
-		}
-
-		return c.Next()
-	})
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Idemou")
