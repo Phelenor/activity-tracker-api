@@ -44,10 +44,11 @@ func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 	}
 
 	user := models.User{
-		Id:       payload.Claims["sub"].(string),
-		Name:     payload.Claims["name"].(string),
-		Email:    payload.Claims["email"].(string),
-		ImageUrl: payload.Claims["picture"].(string),
+		Id:          payload.Claims["sub"].(string),
+		Name:        payload.Claims["name"].(string),
+		DisplayName: payload.Claims["name"].(string),
+		Email:       payload.Claims["email"].(string),
+		ImageUrl:    payload.Claims["picture"].(string),
 	}
 
 	dbUser, err := controller.UserRepo.GetByID(user.Id)
@@ -58,6 +59,7 @@ func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 	if dbUser == nil {
 		err = controller.UserRepo.Insert(&user)
 	} else {
+		user.DisplayName = dbUser.DisplayName
 		err = controller.UserRepo.Update(&user)
 	}
 

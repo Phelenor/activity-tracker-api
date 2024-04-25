@@ -13,3 +13,7 @@ type UserTokenResponse struct {
 	User  User   `json:"user"`
 	Token string `json:"token"`
 }
+
+type UserChangeNameRequest struct {
+	Name string `json:"name"`
+}

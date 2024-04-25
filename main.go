@@ -7,6 +7,7 @@ import (
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
 	"os"
 )
@@ -26,18 +27,19 @@ func startFiberServer(userRepository storage.UserRepository) {
 	app := fiber.New()
 
 	authController := controllers.AuthController{UserRepo: userRepository}
+	userController := controllers.UserController{UserRepo: userRepository}
+
+	app.Use(logger.New())
 
 	app.Post("/api/login", authController.LoginHandler)
-
 	app.Post("/api/token-refresh", authController.TokenRefreshHandler)
 
 	app.Use(jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(os.Getenv("JWT_SECRET"))},
 	}))
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Idemou")
-	})
+	app.Post("/api/change-name", userController.ChangeNameHandler)
+	app.Post("/api/delete-account", userController.DeleteAccountHandler)
 
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {
 		log.Fatal(err)
