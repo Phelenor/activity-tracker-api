@@ -73,6 +73,8 @@ func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 		err = controller.UserRepo.Insert(&user)
 	} else {
 		user.DisplayName = dbUser.DisplayName
+		user.Weight = dbUser.Weight
+		user.Height = dbUser.Height
 		err = controller.UserRepo.Update(&user)
 	}
 

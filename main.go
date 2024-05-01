@@ -29,7 +29,9 @@ func startFiberServer(userRepository storage.UserRepository) {
 	authController := controllers.AuthController{UserRepo: userRepository}
 	userController := controllers.UserController{UserRepo: userRepository}
 
-	app.Use(logger.New())
+	app.Use(logger.New(logger.Config{
+		Format: "${time} | ${status} | ${latency} | ${ip} | ${method} | ${path} | ${error}\nRequest:\t${body}\nResponse:\t${resBody}\n",
+	}))
 
 	app.Post("/api/login", authController.LoginHandler)
 	app.Post("/api/token-refresh", authController.TokenRefreshHandler)
@@ -38,7 +40,7 @@ func startFiberServer(userRepository storage.UserRepository) {
 		SigningKey: jwtware.SigningKey{Key: []byte(os.Getenv("JWT_SECRET"))},
 	}))
 
-	app.Post("/api/change-name", userController.ChangeNameHandler)
+	app.Post("/api/update-user", userController.UpdateUserDataHandler)
 	app.Post("/api/delete-account", userController.DeleteAccountHandler)
 
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {

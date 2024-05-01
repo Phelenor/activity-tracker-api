@@ -4,6 +4,7 @@ import (
 	"activity-tracker-api/models"
 	"activity-tracker-api/storage"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -11,9 +12,10 @@ type UserController struct {
 	UserRepo storage.UserRepository
 }
 
-func (controller *UserController) ChangeNameHandler(c *fiber.Ctx) error {
-	request := models.UserChangeNameRequest{}
+func (controller *UserController) UpdateUserDataHandler(c *fiber.Ctx) error {
+	request := models.UpdateUserDataRequest{}
 	if err := c.BodyParser(&request); err != nil {
+		log.Debug(err.Error())
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid request.")
 	}
 
@@ -33,7 +35,17 @@ func (controller *UserController) ChangeNameHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("User not found.")
 	}
 
-	dbUser.DisplayName = request.Name
+	if request.Name != "" {
+		dbUser.Name = request.Name
+	}
+
+	if request.Weight != 0 {
+		dbUser.Weight = request.Weight
+	}
+
+	if request.Height != 0 {
+		dbUser.Height = request.Height
+	}
 
 	if err := controller.UserRepo.Update(dbUser); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")

@@ -6,4 +6,6 @@ type User struct {
 	Name        string `json:"name"`
 	Email       string `json:"email"`
 	ImageUrl    string `json:"imageUrl"`
+	Weight      int    `json:"weight,omitempty"`
+	Height      int    `json:"height,omitempty"`
 }

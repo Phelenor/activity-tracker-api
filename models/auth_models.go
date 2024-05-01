@@ -15,6 +15,8 @@ type UserTokenResponse struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
-type UserChangeNameRequest struct {
-	Name string `json:"name"`
+type UpdateUserDataRequest struct {
+	Name   string `json:"name"`
+	Height int    `json:"height"`
+	Weight int    `json:"weight"`
 }
