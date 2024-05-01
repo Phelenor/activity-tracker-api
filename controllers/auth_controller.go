@@ -4,6 +4,7 @@ import (
 	"activity-tracker-api/models"
 	"activity-tracker-api/storage"
 	"context"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/api/idtoken"
@@ -11,11 +12,23 @@ import (
 	"time"
 )
 
-func buildUserJWT(user models.User) (string, error) {
+func buildAccessToken(user models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"id":    user.Id,
 		"email": user.Email,
-		"exp":   time.Now().Add(time.Hour * 24 * 7).Unix(),
+		"exp":   time.Now().Add(time.Hour * 24).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+
+	return signed, err
+}
+
+func buildRefreshToken(user models.User) (string, error) {
+	claims := jwt.MapClaims{
+		"id":  user.Id,
+		"exp": time.Now().Add(time.Hour * 24 * 14).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -36,11 +49,11 @@ func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 
 	payload, err := idtoken.Validate(context.Background(), request.IdToken, os.Getenv("GOOGLE_CLIENT_ID"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Can't validate token.")
+		return c.Status(fiber.StatusBadRequest).SendString("Can't validate accessToken.")
 	}
 
 	if payload.Claims["nonce"] != request.Nonce {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid token nonce.")
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid accessToken nonce.")
 	}
 
 	user := models.User{
@@ -67,14 +80,20 @@ func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
-	token, err := buildUserJWT(user)
+	accessToken, err := buildAccessToken(user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
+	}
+
+	refreshToken, err := buildRefreshToken(user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
 	response := models.UserTokenResponse{
-		User:  user,
-		Token: token,
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response)
@@ -86,7 +105,26 @@ func (controller *AuthController) TokenRefreshHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid request.")
 	}
 
-	user, err := controller.UserRepo.GetByID(request.Id)
+	token, err := jwt.Parse(request.RefreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if !token.Valid {
+		return c.Status(fiber.StatusUnauthorized).SendString("Invalid token.")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid token.")
+	}
+
+	userId := claims["id"].(string)
+
+	user, err := controller.UserRepo.GetByID(userId)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
@@ -95,14 +133,20 @@ func (controller *AuthController) TokenRefreshHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("User not found.")
 	}
 
-	token, err := buildUserJWT(*user)
+	accessToken, err := buildAccessToken(*user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
+	}
+
+	refreshToken, err := buildRefreshToken(*user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
 	response := models.UserTokenResponse{
-		User:  *user,
-		Token: token,
+		User:         *user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response)

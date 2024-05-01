@@ -6,12 +6,13 @@ type LoginRequest struct {
 }
 
 type TokenRefreshRequest struct {
-	Id string `json:"id"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 type UserTokenResponse struct {
-	User  User   `json:"user"`
-	Token string `json:"token"`
+	User         User   `json:"user"`
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 type UserChangeNameRequest struct {
