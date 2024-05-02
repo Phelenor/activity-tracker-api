@@ -56,12 +56,17 @@ func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid accessToken nonce.")
 	}
 
+	imageUrl, ok := payload.Claims["picture"].(string)
+	if !ok {
+		imageUrl = ""
+	}
+
 	user := models.User{
 		Id:          payload.Claims["sub"].(string),
 		Name:        payload.Claims["name"].(string),
 		DisplayName: payload.Claims["name"].(string),
 		Email:       payload.Claims["email"].(string),
-		ImageUrl:    payload.Claims["picture"].(string),
+		ImageUrl:    imageUrl,
 	}
 
 	dbUser, err := controller.UserRepo.GetByID(user.Id)
