@@ -47,6 +47,10 @@ func (controller *UserController) UpdateUserDataHandler(c *fiber.Ctx) error {
 		dbUser.Height = request.Height
 	}
 
+	if request.BirthTimestamp != 0 {
+		dbUser.BirthTimestamp = request.BirthTimestamp
+	}
+
 	if err := controller.UserRepo.Update(dbUser); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
