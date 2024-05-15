@@ -36,7 +36,7 @@ func (controller *UserController) UpdateUserDataHandler(c *fiber.Ctx) error {
 	}
 
 	if request.Name != "" {
-		dbUser.Name = request.Name
+		dbUser.DisplayName = request.Name
 	}
 
 	if request.Weight != 0 {
