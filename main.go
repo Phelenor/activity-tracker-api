@@ -28,6 +28,7 @@ func startFiberServer(userRepository storage.UserRepository) {
 
 	authController := controllers.AuthController{UserRepo: userRepository}
 	userController := controllers.UserController{UserRepo: userRepository}
+	activityController := controllers.ActivityController{UserRepo: userRepository}
 
 	app.Use(logger.New(logger.Config{
 		Format: "${time} | ${status} | ${latency} | ${ip} | ${method} | ${path} | ${error}\nRequest:\t${body}\nResponse:\t${resBody}\n",
@@ -42,6 +43,8 @@ func startFiberServer(userRepository storage.UserRepository) {
 
 	app.Post("/api/update-user", userController.UpdateUserDataHandler)
 	app.Post("/api/delete-account", userController.DeleteAccountHandler)
+
+	app.Post("/api/activity", activityController.PostActivityHandler)
 
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {
 		log.Fatal(err)

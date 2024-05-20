@@ -80,6 +80,7 @@ func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 		user.DisplayName = dbUser.DisplayName
 		user.Weight = dbUser.Weight
 		user.Height = dbUser.Height
+		user.BirthTimestamp = dbUser.BirthTimestamp
 		err = controller.UserRepo.Update(&user)
 	}
 
