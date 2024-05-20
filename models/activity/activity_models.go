@@ -1,4 +1,4 @@
-package models
+package activity
 
 type Activity struct {
 	ActivityType              ActivityType              `json:"activityType"`
@@ -21,47 +21,6 @@ type ActivityWeatherInfo struct {
 	Description string  `json:"description"`
 	Icon        string  `json:"icon"`
 }
-
-type ActivityType string
-
-const (
-	RUN     ActivityType = "RUN"
-	WALK                 = "WALK"
-	CYCLING              = "CYCLING"
-	OTHER                = "OTHER"
-)
-
-type HeartRateZone string
-
-const (
-	AT_REST   HeartRateZone = "AT_REST"
-	WARM_UP                 = "WARM_UP"
-	FAT_BURN                = "FAT_BURN"
-	AEROBIC                 = "AEROBIC"
-	ANAEROBIC               = "ANAEROBIC"
-	VO2_MAX                 = "VO2_MAX"
-)
-
-type GoalValueComparisonType string
-
-const (
-	GREATER GoalValueComparisonType = "GREATER"
-	LESS                            = "LESS"
-)
-
-type ActivityGoalType string
-
-const (
-	DISTANCE       ActivityGoalType = "DISTANCE"
-	DURATION                        = "DURATION"
-	CALORIES                        = "CALORIES"
-	AVG_HEART_RATE                  = "AVG_HEART_RATE"
-	AVG_SPEED                       = "AVG_SPEED"
-	AVG_PACE                        = "AVG_PACE"
-	IN_HR_ZONE                      = "IN_HR_ZONE"
-	BELOW_HR_ZONE                   = "BELOW_HR_ZONE"
-	ABOVE_HR_ZONE                   = "ABOVE_HR_ZONE"
-)
 
 type ActivityGoal struct {
 	Type      ActivityGoalType        `json:"type"`

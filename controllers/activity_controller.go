@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"activity-tracker-api/models"
+	"activity-tracker-api/models/activity"
 	"activity-tracker-api/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -12,7 +12,7 @@ type ActivityController struct {
 }
 
 func (controller *ActivityController) PostActivityHandler(c *fiber.Ctx) error {
-	request := models.Activity{}
+	request := activity.Activity{}
 
 	if err := c.BodyParser(&request); err != nil {
 		log.Debug(err.Error())
