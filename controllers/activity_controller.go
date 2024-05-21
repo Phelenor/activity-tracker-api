@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"os"
@@ -89,6 +90,25 @@ func (controller *ActivityController) PostActivityHandler(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(request)
+}
+
+func (controller *ActivityController) DeleteActivity(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims, ok := user.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Next()
+	}
+
+	userId := claims["id"].(string)
+	activityId := c.Params("id")
+
+	err := controller.ActivityRepo.Delete(activityId, userId)
+	if err != nil {
+		log.Debug(err)
+		return c.Status(fiber.StatusBadRequest).SendString("Can't delete activity.")
+	}
+
+	return c.Status(fiber.StatusAccepted).Send(nil)
 }
 
 func (controller *ActivityController) GetActivities(c *fiber.Ctx) error {

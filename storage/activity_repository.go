@@ -10,7 +10,7 @@ type ActivityRepository interface {
 	GetForUserId(id string) ([]activity.DbActivity, error)
 	Insert(dbActivity *activity.DbActivity) error
 	Update(dbActivity *activity.DbActivity) error
-	Delete(id string) error
+	Delete(id string, userId string) error
 }
 
 type activityRepository struct {
@@ -34,7 +34,7 @@ func (repo *activityRepository) GetByID(id string) (*activity.DbActivity, error)
 
 func (repo *activityRepository) GetForUserId(id string) ([]activity.DbActivity, error) {
 	var dbActivities []activity.DbActivity
-	result := repo.db.Find(&dbActivities).Where("userId = ?", id)
+	result := repo.db.Find(&dbActivities, "user_id = ?", id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -51,7 +51,7 @@ func (repo *activityRepository) Update(activity *activity.DbActivity) error {
 	return repo.db.Updates(activity).Error
 }
 
-func (repo *activityRepository) Delete(id string) error {
-	result := repo.db.Delete(&activity.DbActivity{}, "userId = ?", id)
+func (repo *activityRepository) Delete(id string, userId string) error {
+	result := repo.db.Where("user_id = ?", userId).Where("id = ?", id).Delete(&activity.DbActivity{})
 	return result.Error
 }
