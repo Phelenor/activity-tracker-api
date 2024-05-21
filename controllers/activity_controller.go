@@ -92,7 +92,22 @@ func (controller *ActivityController) PostActivityHandler(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(request)
 }
 
-func (controller *ActivityController) DeleteActivity(c *fiber.Ctx) error {
+func (controller *ActivityController) GetActivityHandler(c *fiber.Ctx) error {
+	activityId := c.Params("id")
+
+	dbActivity, err := controller.ActivityRepo.GetByID(activityId)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).Send(nil)
+	}
+
+	imageKey := fmt.Sprintf("images/%s", dbActivity.Id)
+	bucketName := os.Getenv("S3_BUCKET_NAME")
+	url, err := generatePresignedURL(controller.S3PresignClient, bucketName, imageKey, 2*60)
+
+	return c.Status(fiber.StatusOK).JSON(dbActivity.ToActivity(url))
+}
+
+func (controller *ActivityController) DeleteActivityHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
@@ -111,7 +126,7 @@ func (controller *ActivityController) DeleteActivity(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusNoContent).Send(nil)
 }
 
-func (controller *ActivityController) GetActivities(c *fiber.Ctx) error {
+func (controller *ActivityController) GetActivitiesHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {

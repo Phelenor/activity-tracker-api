@@ -23,7 +23,7 @@ func NewActivityRepository(db *gorm.DB) ActivityRepository {
 
 func (repo *activityRepository) GetByID(id string) (*activity.DbActivity, error) {
 	var dbActivity activity.DbActivity
-	result := repo.db.First(&dbActivity, "userId = ?", id)
+	result := repo.db.First(&dbActivity, "id = ?", id)
 
 	if result.Error != nil {
 		return nil, result.Error
