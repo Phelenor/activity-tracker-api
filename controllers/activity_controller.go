@@ -12,6 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"os"
+	"sort"
 	"sync"
 	"time"
 )
@@ -146,6 +147,10 @@ func (controller *ActivityController) GetActivities(c *fiber.Ctx) error {
 		imageUrl := presignedUrls[i]
 		activities = append(activities, dbActivity.ToActivity(imageUrl))
 	}
+
+	sort.Slice(activities, func(i, j int) bool {
+		return activities[i].StartTimestamp > activities[j].StartTimestamp
+	})
 
 	return c.Status(fiber.StatusOK).JSON(activities)
 }

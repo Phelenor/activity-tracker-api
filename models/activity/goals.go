@@ -54,7 +54,7 @@ func (goalProgress *GoalProgress) Scan(value interface{}) error {
 
 type Goals []GoalProgress
 
-func (g *Goals) Value() (driver.Value, error) {
+func (g Goals) Value() (driver.Value, error) {
 	return json.Marshal(g)
 }
 
