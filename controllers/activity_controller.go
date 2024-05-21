@@ -108,7 +108,7 @@ func (controller *ActivityController) DeleteActivity(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Can't delete activity.")
 	}
 
-	return c.Status(fiber.StatusAccepted).Send(nil)
+	return c.Status(fiber.StatusNoContent).Send(nil)
 }
 
 func (controller *ActivityController) GetActivities(c *fiber.Ctx) error {

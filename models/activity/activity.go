@@ -9,6 +9,7 @@ type Activity struct {
 	DurationSeconds           int64                     `json:"durationSeconds"`
 	AvgSpeedKmh               float32                   `json:"avgSpeedKmh"`
 	AvgHeartRate              int                       `json:"avgHeartRate"`
+	MaxHeartRate              int                       `json:"maxHeartRate"`
 	Calories                  int                       `json:"calories"`
 	Elevation                 int                       `json:"elevation"`
 	Weather                   *WeatherInfo              `json:"weather"`
@@ -27,6 +28,7 @@ type DbActivity struct {
 	DurationSeconds           int64                     `json:"durationSeconds"`
 	AvgSpeedKmh               float32                   `json:"avgSpeedKmh"`
 	AvgHeartRate              int                       `json:"avgHeartRate"`
+	MaxHeartRate              int                       `json:"maxHeartRate"`
 	Calories                  int                       `json:"calories"`
 	Elevation                 int                       `json:"elevation"`
 	Weather                   *WeatherInfo              `json:"weather" gorm:"type:jsonb"`
