@@ -8,6 +8,7 @@ type Activity struct {
 	DistanceMeters            int                       `json:"distanceMeters"`
 	DurationSeconds           int64                     `json:"durationSeconds"`
 	AvgSpeedKmh               float32                   `json:"avgSpeedKmh"`
+	MaxSpeedKmh               float32                   `json:"maxSpeedKmh"`
 	AvgHeartRate              int                       `json:"avgHeartRate"`
 	MaxHeartRate              int                       `json:"maxHeartRate"`
 	Calories                  int                       `json:"calories"`
@@ -27,6 +28,7 @@ type DbActivity struct {
 	DistanceMeters            int                       `json:"distanceMeters"`
 	DurationSeconds           int64                     `json:"durationSeconds"`
 	AvgSpeedKmh               float32                   `json:"avgSpeedKmh"`
+	MaxSpeedKmh               float32                   `json:"maxSpeedKmh"`
 	AvgHeartRate              int                       `json:"avgHeartRate"`
 	MaxHeartRate              int                       `json:"maxHeartRate"`
 	Calories                  int                       `json:"calories"`
