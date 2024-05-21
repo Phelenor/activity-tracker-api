@@ -2,6 +2,7 @@ package database
 
 import (
 	"activity-tracker-api/models"
+	"activity-tracker-api/models/activity"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -25,7 +26,7 @@ func ConnectPostgresDb() *gorm.DB {
 		log.Fatal("Failed to connect to database.\n", err)
 	}
 
-	if err := db.AutoMigrate(&models.User{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &activity.DbActivity{}); err != nil {
 		return nil
 	}
 

@@ -1,6 +1,6 @@
 package activity
 
-//go:generate go run github.com/dmarkham/enumer -type=ActivityGoalType -json -output activitygoaltype_string.go -trimprefix ActivityGoalType -transform snake-upper
+//go:generate go run github.com/dmarkham/enumer -type=ActivityGoalType -json -text -output activitygoaltype_string.go -trimprefix ActivityGoalType -transform snake-upper
 type ActivityGoalType int
 
 const (
