@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"os"
@@ -119,7 +118,6 @@ func (controller *ActivityController) DeleteActivityHandler(c *fiber.Ctx) error 
 
 	err := controller.ActivityRepo.Delete(activityId, userId)
 	if err != nil {
-		log.Debug(err)
 		return c.Status(fiber.StatusBadRequest).SendString("Can't delete activity.")
 	}
 

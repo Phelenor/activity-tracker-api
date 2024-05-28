@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/storage/redis/v3"
 	"github.com/joho/godotenv"
 	"os"
 )
@@ -21,30 +22,37 @@ func main() {
 		log.Fatal("Error loading .env file.")
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.Background(),
-		config.WithRegion("eu-central-1"),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(os.Getenv("AWS_ACCESS_KEY"), os.Getenv("AWS_SECRET_KEY"), "")),
-	)
-
-	if err != nil {
-		log.Fatalf("Unable to load S3 SDK config, %v", err)
-	}
-
-	s3Client := s3.NewFromConfig(cfg)
-	s3PresignClient := s3.NewPresignClient(s3Client)
+	redisStorage := redis.New()
 	db := database.ConnectPostgresDb()
+
 	userRepository := storage.NewUserRepository(db)
 	activityRepository := storage.NewActivityRepository(db)
+	groupActivityRepository := storage.NewGroupActivityRepository(db, redisStorage)
 
-	startFiberServer(userRepository, activityRepository, s3Client, s3PresignClient)
+	s3Client, s3PresignClient := initS3()
+
+	startFiberServer(
+		userRepository,
+		activityRepository,
+		groupActivityRepository,
+		s3Client,
+		s3PresignClient,
+	)
 }
 
-func startFiberServer(userRepository storage.UserRepository, activityRepository storage.ActivityRepository, s3Client *s3.Client, s3PresignClient *s3.PresignClient) {
+func startFiberServer(
+	userRepository storage.UserRepository,
+	activityRepository storage.ActivityRepository,
+	groupActivityRepository storage.GroupActivityRepository,
+	s3Client *s3.Client,
+	s3PresignClient *s3.PresignClient,
+) {
 	app := fiber.New()
 
 	authController := controllers.AuthController{UserRepo: userRepository}
 	userController := controllers.UserController{UserRepo: userRepository}
 	activityController := controllers.ActivityController{ActivityRepo: activityRepository, S3Client: s3Client, S3PresignClient: s3PresignClient}
+	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository}
 
 	app.Use(logger.New())
 
@@ -57,12 +65,34 @@ func startFiberServer(userRepository storage.UserRepository, activityRepository 
 
 	app.Post("/api/update-user", userController.UpdateUserDataHandler)
 	app.Post("/api/delete-account", userController.DeleteAccountHandler)
+
 	app.Post("/api/activities", activityController.PostActivityHandler)
 	app.Get("/api/activities", activityController.GetActivitiesHandler)
 	app.Get("/api/activities/:id", activityController.GetActivityHandler)
 	app.Delete("/api/activities/:id", activityController.DeleteActivityHandler)
 
+	app.Post("/api/create-group-activity", groupActivityController.CreateGroupActivityHandler)
+
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func initS3() (*s3.Client, *s3.PresignClient) {
+	cfg, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("eu-central-1"),
+		config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(os.Getenv("AWS_ACCESS_KEY"), os.Getenv("AWS_SECRET_KEY"), ""),
+		),
+	)
+
+	if err != nil {
+		log.Fatalf("Unable to load S3 SDK config, %v", err)
+	}
+
+	s3Client := s3.NewFromConfig(cfg)
+	s3PresignClient := s3.NewPresignClient(s3Client)
+
+	return s3Client, s3PresignClient
 }
