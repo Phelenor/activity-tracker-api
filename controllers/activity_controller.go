@@ -27,7 +27,7 @@ func (controller *ActivityController) PostActivityHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
-		return c.Next()
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
 	}
 
 	userId := claims["id"].(string)
@@ -110,7 +110,7 @@ func (controller *ActivityController) DeleteActivityHandler(c *fiber.Ctx) error 
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
-		return c.Next()
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
 	}
 
 	userId := claims["id"].(string)
@@ -128,7 +128,7 @@ func (controller *ActivityController) GetActivitiesHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
-		return c.Next()
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
 	}
 
 	userId := claims["id"].(string)

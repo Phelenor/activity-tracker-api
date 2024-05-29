@@ -22,7 +22,7 @@ func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.C
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
-		return c.Next()
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
 	}
 
 	userId := claims["id"].(string)
@@ -34,8 +34,8 @@ func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.C
 		ActivityType:   request.ActivityType,
 		StartTimestamp: request.StartTimestamp,
 		Status:         activity.ActivityStatusNotStarted,
-		StartedUsers:   []string{userId},
-		ActiveUsers:    []string{userId},
+		StartedUsers:   []string{},
+		ActiveUsers:    []string{},
 	}
 
 	err := controller.GroupActivityRepo.Insert(&groupActivity)
@@ -46,11 +46,25 @@ func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.C
 	return c.Status(fiber.StatusOK).JSON(groupActivity)
 }
 
+func (controller *GroupActivityController) JoinGroupActivityHandler(c *fiber.Ctx) error {
+	request := activity.JoinGroupActivityRequest{}
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid request.")
+	}
+
+	groupActivity, err := controller.GroupActivityRepo.GetByJoinCodeFromRedis(request.JoinCode)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Invalid join code.")
+	}
+
+	return c.Status(fiber.StatusOK).JSON(groupActivity)
+}
+
 func generateJoinCode(length int) string {
-	digits := "0123456789"
+	chars := "0123456789ABCDEF"
 	code := make([]byte, length)
 	for i := range code {
-		code[i] = digits[rand.Intn(len(digits))]
+		code[i] = chars[rand.Intn(len(chars))]
 	}
 
 	return string(code)

@@ -20,7 +20,7 @@ func (controller *UserController) UpdateUserDataHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
-		return c.Next()
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
 	}
 
 	userId := claims["id"].(string)
@@ -60,7 +60,7 @@ func (controller *UserController) DeleteAccountHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
-		return c.Next()
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
 	}
 
 	userId := claims["id"].(string)

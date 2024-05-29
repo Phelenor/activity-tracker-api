@@ -11,6 +11,7 @@ import (
 type GroupActivityRepository interface {
 	GetByIDFromDb(id string) (*activity.GroupActivity, error)
 	GetByIDFromRedis(id string) (*activity.GroupActivity, error)
+	GetByJoinCodeFromRedis(id string) (*activity.GroupActivity, error)
 	Insert(dbActivity *activity.GroupActivity) error
 	Delete(id string, userId string) error
 }
@@ -38,8 +39,12 @@ func (repo *groupActivityRepo) GetByIDFromDb(id string) (*activity.GroupActivity
 func (repo *groupActivityRepo) GetByIDFromRedis(id string) (*activity.GroupActivity, error) {
 	activityBytes, err := repo.redis.Get(id)
 
-	if err != nil || activityBytes == nil {
+	if err != nil {
 		return nil, err
+	}
+
+	if activityBytes == nil {
+		return nil, fmt.Errorf("no activity found with id %s", id)
 	}
 
 	var groupActivity activity.GroupActivity
@@ -50,8 +55,29 @@ func (repo *groupActivityRepo) GetByIDFromRedis(id string) (*activity.GroupActiv
 	return &groupActivity, nil
 }
 
+func (repo *groupActivityRepo) GetByJoinCodeFromRedis(joinCode string) (*activity.GroupActivity, error) {
+	idBytes, err := repo.redis.Get(joinCode)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if idBytes == nil {
+		return nil, fmt.Errorf("invalid join code: %s", joinCode)
+	}
+
+	id := string(idBytes)
+
+	return repo.GetByIDFromRedis(id)
+}
+
 func (repo *groupActivityRepo) Insert(groupActivity *activity.GroupActivity) error {
 	if groupActivity.Status == activity.ActivityStatusFinished {
+		err := repo.redis.Delete(groupActivity.Id)
+		if err != nil {
+			return err
+		}
+
 		return repo.db.Create(groupActivity).Error
 	}
 
@@ -60,7 +86,12 @@ func (repo *groupActivityRepo) Insert(groupActivity *activity.GroupActivity) err
 		return err
 	}
 
-	return repo.redis.Set(groupActivity.Id, activityJSON, 0)
+	err = repo.redis.Set(groupActivity.Id, activityJSON, 0)
+	if err != nil {
+		return err
+	}
+
+	return repo.redis.Set(groupActivity.JoinCode, []byte(groupActivity.Id), 0)
 }
 
 func (repo *groupActivityRepo) Delete(id string, userId string) error {
