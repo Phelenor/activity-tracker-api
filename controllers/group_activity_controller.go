@@ -12,7 +12,7 @@ import (
 
 type GroupActivityController struct {
 	GroupActivityRepo storage.GroupActivityRepository
-	UserRepository    storage.UserRepository
+	UserRepo          storage.UserRepository
 }
 
 func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.Ctx) error {
@@ -29,7 +29,7 @@ func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.C
 
 	userId := claims["id"].(string)
 
-	user, err := controller.UserRepository.GetByID(userId)
+	user, err := controller.UserRepo.GetByID(userId)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Error while saving activity.")
 	}

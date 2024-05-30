@@ -57,7 +57,7 @@ func startFiberServer(
 	authController := controllers.AuthController{UserRepo: userRepository}
 	userController := controllers.UserController{UserRepo: userRepository}
 	activityController := controllers.ActivityController{ActivityRepo: activityRepository, S3Client: s3Client, S3PresignClient: s3PresignClient}
-	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository}
+	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository, UserRepo: userRepository}
 
 	app.Use(logger.New())
 
