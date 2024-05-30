@@ -12,9 +12,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/storage/redis/v3"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"os"
+	"time"
 )
 
 func main() {
@@ -22,14 +23,18 @@ func main() {
 		log.Fatal("Error loading .env file.")
 	}
 
-	redisStorage := redis.New()
 	db := database.ConnectPostgresDb()
+	redisStorage := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
 
 	userRepository := storage.NewUserRepository(db)
 	activityRepository := storage.NewActivityRepository(db)
 	groupActivityRepository := storage.NewGroupActivityRepository(db, redisStorage)
 
 	s3Client, s3PresignClient := initS3()
+
+	startPeriodicActivityClear(groupActivityRepository)
 
 	startFiberServer(
 		userRepository,
@@ -97,4 +102,16 @@ func initS3() (*s3.Client, *s3.PresignClient) {
 	s3PresignClient := s3.NewPresignClient(s3Client)
 
 	return s3Client, s3PresignClient
+}
+
+func startPeriodicActivityClear(repo storage.GroupActivityRepository) {
+	ticker := time.NewTicker(1 * time.Hour)
+	go func() {
+		for range ticker.C {
+			err := repo.DeleteExpiredActivities()
+			if err != nil {
+				log.Error(err)
+			}
+		}
+	}()
 }

@@ -34,6 +34,7 @@ func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.C
 		ActivityType:   request.ActivityType,
 		StartTimestamp: request.StartTimestamp,
 		Status:         activity.ActivityStatusNotStarted,
+		JoinedUsers:    []string{userId},
 		StartedUsers:   []string{},
 		ActiveUsers:    []string{},
 	}
@@ -52,9 +53,24 @@ func (controller *GroupActivityController) JoinGroupActivityHandler(c *fiber.Ctx
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid request.")
 	}
 
+	user := c.Locals("user").(*jwt.Token)
+	claims, ok := user.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
+	}
+
+	userId := claims["id"].(string)
+
 	groupActivity, err := controller.GroupActivityRepo.GetByJoinCodeFromRedis(request.JoinCode)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).SendString("Invalid join code.")
+	}
+
+	groupActivity.JoinedUsers = append(groupActivity.JoinedUsers, userId)
+
+	err = controller.GroupActivityRepo.Insert(groupActivity)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString(".")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(groupActivity)
