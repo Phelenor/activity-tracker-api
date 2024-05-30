@@ -4,6 +4,7 @@ type GroupActivity struct {
 	Id             string         `json:"id" gorm:"primaryKey"`
 	JoinCode       string         `json:"joinCode"`
 	UserOwnerId    string         `json:"userOwnerId"`
+	UserOwnerName  string         `json:"userOwnerName"`
 	ActivityType   ActivityType   `json:"activityType"`
 	StartTimestamp int64          `json:"startTimestamp"`
 	Status         ActivityStatus `json:"status"`

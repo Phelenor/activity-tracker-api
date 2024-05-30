@@ -19,6 +19,7 @@ type GroupActivityRepository interface {
 	Insert(dbActivity *activity.GroupActivity) error
 	Delete(id string, userId string) error
 	DeleteExpiredActivities() error
+	GetByUserIdFromRedis(userId string) ([]*activity.GroupActivity, error)
 }
 
 type groupActivityRepo struct {
@@ -162,6 +163,22 @@ func (repo *groupActivityRepo) getExpiredActivities() ([]*activity.GroupActivity
 	log.Info("Deleting expired activities from Redis ", expiredActivities)
 
 	return expiredActivities, nil
+}
+
+func (repo *groupActivityRepo) GetByUserIdFromRedis(userId string) ([]*activity.GroupActivity, error) {
+	activityIds := repo.redis.SMembers(ctx, "user:"+userId+":activities").Val()
+
+	var activities []*activity.GroupActivity
+	for _, activityId := range activityIds {
+		groupActivity, err := repo.GetByIDFromRedis(activityId)
+		if err != nil {
+			return nil, err
+		}
+
+		activities = append(activities, groupActivity)
+	}
+
+	return activities, nil
 }
 
 func (repo *groupActivityRepo) deleteActivityRefsFromRedis(groupActivity *activity.GroupActivity) error {
