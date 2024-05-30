@@ -97,6 +97,33 @@ func (controller *GroupActivityController) GetGroupActivityHandler(c *fiber.Ctx)
 	return c.Status(fiber.StatusOK).JSON(groupActivity)
 }
 
+func (controller *GroupActivityController) DeleteGroupActivityHandler(c *fiber.Ctx) error {
+	activityId := c.Params("id")
+	user := c.Locals("user").(*jwt.Token)
+	claims, ok := user.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
+	}
+
+	userId := claims["id"].(string)
+
+	groupActivity, err := controller.GroupActivityRepo.GetByIDFromRedis(activityId)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).Send(nil)
+	}
+
+	if groupActivity.UserOwnerId != userId {
+		return c.Status(fiber.StatusForbidden).Send(nil)
+	}
+
+	err = controller.GroupActivityRepo.Delete(activityId)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).Send(nil)
+	}
+
+	return c.Status(fiber.StatusOK).Send(nil)
+}
+
 func (controller *GroupActivityController) GetPendingActivitiesHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)

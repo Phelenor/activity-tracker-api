@@ -79,6 +79,7 @@ func startFiberServer(
 	app.Post("/api/create-group-activity", groupActivityController.CreateGroupActivityHandler)
 	app.Post("/api/join-group-activity", groupActivityController.JoinGroupActivityHandler)
 	app.Get("/api/group-activities/:id", groupActivityController.GetGroupActivityHandler)
+	app.Delete("/api/group-activities/:id", groupActivityController.DeleteGroupActivityHandler)
 	app.Get("/api/group-activities", groupActivityController.GetPendingActivitiesHandler)
 
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {

@@ -17,7 +17,7 @@ type GroupActivityRepository interface {
 	GetByIDFromRedis(id string) (*activity.GroupActivity, error)
 	GetByJoinCodeFromRedis(id string) (*activity.GroupActivity, error)
 	Insert(dbActivity *activity.GroupActivity) error
-	Delete(id string, userId string) error
+	Delete(id string) error
 	DeleteExpiredActivities() error
 	GetByUserIdFromRedis(userId string) ([]*activity.GroupActivity, error)
 }
@@ -99,7 +99,7 @@ func (repo *groupActivityRepo) Insert(groupActivity *activity.GroupActivity) err
 	return repo.redis.Set(ctx, groupActivity.JoinCode, []byte(groupActivity.Id), 0).Err()
 }
 
-func (repo *groupActivityRepo) Delete(id string, userId string) error {
+func (repo *groupActivityRepo) Delete(id string) error {
 	activityBytes, err := repo.redis.Get(ctx, id).Bytes()
 	if errors.Is(err, redis.Nil) {
 		return fmt.Errorf("no activity found with id %s", id)
@@ -110,11 +110,7 @@ func (repo *groupActivityRepo) Delete(id string, userId string) error {
 		return err
 	}
 
-	if groupActivity.UserOwnerId == userId {
-		return repo.deleteActivityRefsFromRedis(&groupActivity)
-	}
-
-	return fmt.Errorf("unauthorized to delete group activity %s", id)
+	return repo.deleteActivityRefsFromRedis(&groupActivity)
 }
 
 func (repo *groupActivityRepo) DeleteExpiredActivities() error {
