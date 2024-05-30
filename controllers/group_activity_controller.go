@@ -60,6 +60,17 @@ func (controller *GroupActivityController) JoinGroupActivityHandler(c *fiber.Ctx
 	return c.Status(fiber.StatusOK).JSON(groupActivity)
 }
 
+func (controller *GroupActivityController) GetGroupActivityHandler(c *fiber.Ctx) error {
+	activityId := c.Params("id")
+
+	groupActivity, err := controller.GroupActivityRepo.GetByIDFromRedis(activityId)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).Send(nil)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(groupActivity)
+}
+
 func generateJoinCode(length int) string {
 	chars := "0123456789ABCDEF"
 	code := make([]byte, length)
