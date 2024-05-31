@@ -3,6 +3,7 @@ package activity
 func (activity Activity) ToDbActivity(id string, userId string) DbActivity {
 	return DbActivity{
 		Id:                        id,
+		GroupActivityId:           activity.GroupActivityId,
 		UserId:                    userId,
 		ActivityType:              activity.ActivityType,
 		StartTimestamp:            activity.StartTimestamp,
@@ -24,6 +25,7 @@ func (activity Activity) ToDbActivity(id string, userId string) DbActivity {
 func (dbActivity DbActivity) ToActivity(imageUrl string) Activity {
 	return Activity{
 		Id:                        dbActivity.Id,
+		GroupActivityId:           dbActivity.GroupActivityId,
 		ActivityType:              dbActivity.ActivityType,
 		StartTimestamp:            dbActivity.StartTimestamp,
 		EndTimestamp:              dbActivity.EndTimestamp,

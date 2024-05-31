@@ -2,6 +2,7 @@ package activity
 
 type Activity struct {
 	Id                        string                    `json:"id"`
+	GroupActivityId           string                    `json:"groupActivityId,omitempty"`
 	ActivityType              ActivityType              `json:"activityType"`
 	StartTimestamp            int64                     `json:"startTimestamp"`
 	EndTimestamp              int64                     `json:"endTimestamp"`
@@ -21,6 +22,7 @@ type Activity struct {
 
 type DbActivity struct {
 	Id                        string                    `json:"id" gorm:"primaryKey"`
+	GroupActivityId           string                    `json:"groupActivityId,omitempty"`
 	UserId                    string                    `json:"userId"`
 	ActivityType              ActivityType              `json:"activityType"`
 	StartTimestamp            int64                     `json:"startTimestamp"`
