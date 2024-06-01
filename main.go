@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"os"
@@ -58,6 +59,7 @@ func startFiberServer(
 	userController := controllers.UserController{UserRepo: userRepository}
 	activityController := controllers.ActivityController{ActivityRepo: activityRepository, S3Client: s3Client, S3PresignClient: s3PresignClient}
 	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository, UserRepo: userRepository}
+	activityWebSocketController := controllers.NewWebSocketController(groupActivityRepository)
 
 	app.Use(logger.New())
 
@@ -81,6 +83,7 @@ func startFiberServer(
 	app.Get("/api/group-activities/:id", groupActivityController.GetGroupActivityHandler)
 	app.Delete("/api/group-activities/:id", groupActivityController.DeleteGroupActivityHandler)
 	app.Get("/api/group-activities", groupActivityController.GetPendingActivitiesHandler)
+	app.Get("/ws/activity", activityWebSocketController.WebSocketUpgradeHandler, websocket.New(activityWebSocketController.WebSocketMessageHandler))
 
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {
 		log.Fatal(err)

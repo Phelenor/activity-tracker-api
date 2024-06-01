@@ -138,8 +138,6 @@ func (repo *groupActivityRepo) getExpiredActivities() ([]*activity.GroupActivity
 
 		if errors.Is(err, redis.Nil) {
 			continue
-		} else if err != nil {
-			return nil, err
 		}
 
 		var groupActivity activity.GroupActivity
