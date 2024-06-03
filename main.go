@@ -83,7 +83,7 @@ func startFiberServer(
 	app.Get("/api/group-activities/:id", groupActivityController.GetGroupActivityHandler)
 	app.Delete("/api/group-activities/:id", groupActivityController.DeleteGroupActivityHandler)
 	app.Get("/api/group-activities", groupActivityController.GetPendingActivitiesHandler)
-	app.Get("/ws/activity", activityWebSocketController.WebSocketUpgradeHandler, websocket.New(activityWebSocketController.WebSocketMessageHandler))
+	app.Get("/ws/activity/:id", activityWebSocketController.WebSocketUpgradeHandler, websocket.New(activityWebSocketController.WebSocketMessageHandler))
 
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {
 		log.Fatal(err)
