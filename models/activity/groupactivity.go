@@ -9,6 +9,7 @@ type GroupActivity struct {
 	StartTimestamp int64          `json:"startTimestamp"`
 	Status         ActivityStatus `json:"status"`
 	JoinedUsers    []string       `json:"joinedUsers" gorm:"type:jsonb"`
+	ConnectedUsers []string       `json:"connectedUsers" gorm:"type:jsonb"`
 	StartedUsers   []string       `json:"startedUsers" gorm:"type:jsonb"`
 	ActiveUsers    []string       `json:"activeUsers" gorm:"type:jsonb"`
 }

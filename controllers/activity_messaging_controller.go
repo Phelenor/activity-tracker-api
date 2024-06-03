@@ -13,8 +13,8 @@ import (
 
 type ActivityWebSocketController struct {
 	GroupActivityRepo storage.GroupActivityRepository
-	connections       map[string]*websocket.Conn
 	connectionsMutex  sync.Mutex
+	connections       map[string]*websocket.Conn
 }
 
 func NewWebSocketController(repository storage.GroupActivityRepository) *ActivityWebSocketController {
@@ -45,16 +45,29 @@ func (controller *ActivityWebSocketController) WebSocketUpgradeHandler(c *fiber.
 
 func (controller *ActivityWebSocketController) WebSocketMessageHandler(conn *websocket.Conn) {
 	userId := conn.Locals("userId").(string)
-	// activityId := conn.Locals("activityId").(string)
+	activityId := conn.Locals("activityId").(string)
 
 	controller.connectionsMutex.Lock()
 	controller.connections[userId] = conn
 	controller.connectionsMutex.Unlock()
+	err := controller.GroupActivityRepo.AddUserToActivityList(activityId, userId, storage.ActivityListTypeConnected)
+	if err != nil {
+		log.Error("error connecting user to activity: ", err)
+	}
 
 	defer func() {
 		controller.connectionsMutex.Lock()
 		delete(controller.connections, userId)
 		controller.connectionsMutex.Unlock()
+		err := controller.GroupActivityRepo.RemoveUserFromActivityList(activityId, userId, storage.ActivityListTypeConnected)
+		if err != nil {
+			log.Error("error disconnecting user from activity: ", err)
+		}
+
+		err = conn.Close()
+		if err != nil {
+			log.Error(err)
+		}
 	}()
 
 	for {
@@ -108,4 +121,28 @@ func (controller *ActivityWebSocketController) handleIncomingMessage(msg []byte)
 	//default:
 	//	log.Printf("Unknown message type: %s\n", baseMsg.Type)
 	//}
+}
+
+func (controller *ActivityWebSocketController) broadcastMessage(exceptUserId string, activityId string) {
+	activity, err := controller.GroupActivityRepo.GetByIDFromRedis(activityId)
+	if err != nil {
+		return
+	}
+
+	for _, userId := range activity.ConnectedUsers {
+		if userId == exceptUserId {
+			continue
+		}
+
+		controller.connectionsMutex.Lock()
+		conn, ok := controller.connections[userId]
+		controller.connectionsMutex.Unlock()
+
+		if ok {
+			err := conn.WriteMessage(websocket.TextMessage, []byte(activity.Id))
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
 }

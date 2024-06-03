@@ -152,7 +152,7 @@ func (controller *ActivityController) GetActivitiesHandler(c *fiber.Ctx) error {
 			defer wg.Done()
 			imageKey := fmt.Sprintf("images/%s", dbActivity.Id)
 			bucketName := os.Getenv("S3_BUCKET_NAME")
-			url, err := generatePresignedURL(controller.S3PresignClient, bucketName, imageKey, 15*60)
+			url, err := generatePresignedURL(controller.S3PresignClient, bucketName, imageKey, 2*60)
 			urlChan <- struct {
 				index int
 				url   string
