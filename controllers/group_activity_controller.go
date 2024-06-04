@@ -125,7 +125,7 @@ func (controller *GroupActivityController) DeleteGroupActivityHandler(c *fiber.C
 	return c.Status(fiber.StatusOK).Send(nil)
 }
 
-func (controller *GroupActivityController) GetPendingActivitiesHandler(c *fiber.Ctx) error {
+func (controller *GroupActivityController) GetScheduledActivitiesHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
