@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"activity-tracker-api/models/activity"
 	"activity-tracker-api/models/ws"
 	"activity-tracker-api/storage"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/websocket/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"strings"
 	"sync"
 )
 
@@ -36,7 +38,7 @@ func (controller *ActivityWebSocketController) WebSocketUpgradeHandler(c *fiber.
 
 	if websocket.IsWebSocketUpgrade(c) {
 		c.Locals("userId", userId)
-		c.Locals("activityId", activityId)
+		c.Locals("activityId", strings.Clone(activityId))
 		return c.Next()
 	}
 
@@ -55,7 +57,9 @@ func (controller *ActivityWebSocketController) WebSocketMessageHandler(conn *web
 		log.Error("error connecting user to activity: ", err)
 	}
 
-	defer func() {
+	controller.broadcastActivityUpdate(activityId)
+
+	defer func(activityId, userId string) {
 		controller.connectionsMutex.Lock()
 		delete(controller.connections, userId)
 		controller.connectionsMutex.Unlock()
@@ -64,11 +68,13 @@ func (controller *ActivityWebSocketController) WebSocketMessageHandler(conn *web
 			log.Error("error disconnecting user from activity: ", err)
 		}
 
+		controller.broadcastActivityUpdate(activityId)
+
 		err = conn.Close()
 		if err != nil {
 			log.Error(err)
 		}
-	}()
+	}(activityId, userId)
 
 	for {
 		_, msg, err := conn.ReadMessage()
@@ -76,61 +82,76 @@ func (controller *ActivityWebSocketController) WebSocketMessageHandler(conn *web
 			break
 		}
 
-		log.Debug("new message: ", string(msg))
-
-		err = conn.WriteMessage(websocket.TextMessage, msg)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// controller.handleIncomingMessage(msg)
+		controller.handleIncomingMessage(activityId, userId, msg)
 	}
 }
 
-func (controller *ActivityWebSocketController) handleIncomingMessage(msg []byte) {
-	log.Debug("new message: ", string(msg))
+func (controller *ActivityWebSocketController) handleIncomingMessage(activityId string, userId string, msg []byte) {
+	var msgType struct {
+		Type string `json:"type"`
+	}
 
-	var baseMsg ws.ActivityMessage
-	if err := json.Unmarshal(msg, &baseMsg); err != nil {
-		log.Debug("Error unmarshaling base message: %v\n", err)
+	if err := json.Unmarshal(msg, &msgType); err != nil {
+		log.Error("No type provided in the message: ", err)
 		return
 	}
 
-	//switch baseMsg.Type {
-	//case "connect_message":
-	//	var aMsg ConnectMessage
-	//	if err := json.Unmarshal(baseMsg.Data, &aMsg); err != nil {
-	//		log.Printf("Error unmarshaling ConnectMessage: %v\n", err)
-	//		return
-	//	}
-	//	controller.handleConnectMessage(userID, aMsg)
-	//case "data_update":
-	//	var bMsg DataUpdate
-	//	if err := json.Unmarshal(baseMsg.Data, &bMsg); err != nil {
-	//		log.Printf("Error unmarshaling DataUpdate: %v\n", err)
-	//		return
-	//	}
-	//	controller.handleDataUpdate(userID, bMsg)
-	//case "status_change":
-	//	var cMsg StatusChange
-	//	if err := json.Unmarshal(baseMsg.Data, &cMsg); err != nil {
-	//		log.Printf("Error unmarshaling StatusChange: %v\n", err)
-	//		return
-	//	}
-	//	controller.handleStatusChange(userID, cMsg)
-	//default:
-	//	log.Printf("Unknown message type: %s\n", baseMsg.Type)
-	//}
+	switch msgType.Type {
+	case "user_update":
+		controller.broadcastMessage(activityId, userId, msg)
+	case "control_action":
+		controller.broadcastMessage(activityId, userId, msg)
+
+		var controlAction ws.ControlAction
+		if err := json.Unmarshal(msg, &controlAction); err != nil {
+			log.Error("Error unmarshalling ControlAction: ", err)
+			return
+		}
+
+		var status activity.ActivityStatus
+
+		switch controlAction.Action {
+		case ws.ActivityControlResume:
+		case ws.ActivityControlStart:
+			status = activity.ActivityStatusInProgress
+		case ws.ActivityControlPause:
+			status = activity.ActivityStatusPaused
+		case ws.ActivityControlFinish:
+			status = activity.ActivityStatusFinished
+		default:
+			status = activity.ActivityStatusUndefined
+		}
+
+		err := controller.GroupActivityRepo.UpdateActivityStatus(activityId, status)
+		if err != nil {
+			log.Error("Error updating activity status: ", err)
+		}
+	case "user_finish_signal":
+		controller.broadcastMessage(activityId, userId, msg)
+
+		var userFinish ws.UserFinish
+		if err := json.Unmarshal(msg, &userFinish); err != nil {
+			log.Error("Error unmarshalling UserFinish: ", err)
+			return
+		}
+
+		err := controller.GroupActivityRepo.RemoveUserFromActivityList(activityId, userId, storage.ActivityListTypeActive)
+		if err != nil {
+			return
+		}
+	default:
+		log.Error("Unknown message type: ", msgType.Type)
+	}
 }
 
-func (controller *ActivityWebSocketController) broadcastMessage(exceptUserId string, activityId string) {
-	activity, err := controller.GroupActivityRepo.GetByIDFromRedis(activityId)
+func (controller *ActivityWebSocketController) broadcastMessage(activityId string, senderUserId string, msg []byte) {
+	groupActivity, err := controller.GroupActivityRepo.GetByIDFromRedis(activityId)
 	if err != nil {
 		return
 	}
 
-	for _, userId := range activity.ConnectedUsers {
-		if userId == exceptUserId {
+	for _, userId := range groupActivity.ConnectedUsers {
+		if userId == senderUserId {
 			continue
 		}
 
@@ -139,7 +160,38 @@ func (controller *ActivityWebSocketController) broadcastMessage(exceptUserId str
 		controller.connectionsMutex.Unlock()
 
 		if ok {
-			err := conn.WriteMessage(websocket.TextMessage, []byte(activity.Id))
+			err := conn.WriteMessage(websocket.TextMessage, msg)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
+
+func (controller *ActivityWebSocketController) broadcastActivityUpdate(activityId string) {
+	groupActivity, err := controller.GroupActivityRepo.GetByIDFromRedis(activityId)
+	if err != nil {
+		return
+	}
+
+	msg := ws.ActivityUpdate{
+		Activity: *groupActivity,
+		Type:     "activity_update",
+	}
+
+	msgJson, err := json.Marshal(msg)
+	if err != nil {
+		log.Error("Error marshalling ActivityUpdate: ", err)
+		return
+	}
+
+	for _, userId := range groupActivity.ConnectedUsers {
+		controller.connectionsMutex.Lock()
+		conn, ok := controller.connections[userId]
+		controller.connectionsMutex.Unlock()
+
+		if ok {
+			err := conn.WriteMessage(websocket.TextMessage, msgJson)
 			if err != nil {
 				log.Fatal(err)
 			}

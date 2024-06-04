@@ -30,6 +30,7 @@ type GroupActivityRepository interface {
 	GetByUserIdFromRedis(userId string) ([]*activity.GroupActivity, error)
 	AddUserToActivityList(activityId string, userId string, listType ActivityListType) error
 	RemoveUserFromActivityList(activityId string, userId string, listType ActivityListType) error
+	UpdateActivityStatus(activityId string, status activity.ActivityStatus) error
 }
 
 type groupActivityRepo struct {
@@ -255,6 +256,7 @@ func (repo *groupActivityRepo) RemoveUserFromActivityList(activityId string, use
 				if errors.Is(err, redis.Nil) {
 					return fmt.Errorf("activity with id %s does not exist", activityId)
 				}
+
 				return err
 			}
 
@@ -266,10 +268,14 @@ func (repo *groupActivityRepo) RemoveUserFromActivityList(activityId string, use
 			switch listType {
 			case ActivityListTypeConnected:
 				index := slices.Index(groupActivity.ConnectedUsers, userId)
-				groupActivity.ConnectedUsers = slices.Delete(groupActivity.ConnectedUsers, index, index+1)
+				if index != -1 {
+					groupActivity.ConnectedUsers = slices.Delete(groupActivity.ConnectedUsers, index, index+1)
+				}
 			case ActivityListTypeActive:
 				index := slices.Index(groupActivity.ActiveUsers, userId)
-				groupActivity.ActiveUsers = slices.Delete(groupActivity.ActiveUsers, index, index+1)
+				if index != -1 {
+					groupActivity.ActiveUsers = slices.Delete(groupActivity.ActiveUsers, index, index+1)
+				}
 			}
 
 			activityJSON, err = json.Marshal(&groupActivity)
@@ -279,6 +285,59 @@ func (repo *groupActivityRepo) RemoveUserFromActivityList(activityId string, use
 
 			_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 				pipe.Set(ctx, activityId, activityJSON, 0)
+				return nil
+			})
+
+			return err
+		}, activityId)
+
+		if errors.Is(err, redis.TxFailedErr) {
+			continue
+		}
+
+		return err
+	}
+}
+
+func (repo *groupActivityRepo) UpdateActivityStatus(activityId string, status activity.ActivityStatus) error {
+	for {
+		err := repo.redis.Watch(ctx, func(tx *redis.Tx) error {
+			activityJSON, err := tx.Get(ctx, activityId).Bytes()
+			if err != nil {
+				if errors.Is(err, redis.Nil) {
+					return fmt.Errorf("activity with id %s does not exist", activityId)
+				}
+
+				return err
+			}
+
+			var groupActivity activity.GroupActivity
+			if err := json.Unmarshal(activityJSON, &groupActivity); err != nil {
+				return err
+			}
+
+			activityJSON, err = json.Marshal(&groupActivity)
+			if err != nil {
+				return err
+			}
+
+			_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+				if status != activity.ActivityStatusFinished {
+					pipe.Set(ctx, activityId, activityJSON, 0)
+				} else {
+					err := pipe.Del(ctx, groupActivity.JoinCode).Err()
+					err = pipe.Del(ctx, groupActivity.Id).Err()
+
+					for _, userId := range groupActivity.JoinedUsers {
+						err = pipe.SRem(ctx, "user:"+userId+":activities", groupActivity.Id).Err()
+						if err != nil {
+							return err
+						}
+					}
+
+					repo.db.Create(groupActivity)
+				}
+
 				return nil
 			})
 

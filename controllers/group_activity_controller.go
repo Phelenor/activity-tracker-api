@@ -43,6 +43,7 @@ func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.C
 		StartTimestamp: request.StartTimestamp,
 		Status:         activity.ActivityStatusNotStarted,
 		JoinedUsers:    []string{userId},
+		ConnectedUsers: []string{},
 		StartedUsers:   []string{},
 		ActiveUsers:    []string{},
 	}
@@ -138,7 +139,11 @@ func (controller *GroupActivityController) GetPendingActivitiesHandler(c *fiber.
 		return c.Status(fiber.StatusNotFound).Send(nil)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(groupActivities)
+	if len(groupActivities) == 0 {
+		return c.Status(fiber.StatusOK).JSON(make([]*string, 0))
+	} else {
+		return c.Status(fiber.StatusOK).JSON(groupActivities)
+	}
 }
 
 func generateJoinCode(length int) string {
