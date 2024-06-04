@@ -87,6 +87,28 @@ func (controller *GroupActivityController) JoinGroupActivityHandler(c *fiber.Ctx
 	return c.Status(fiber.StatusOK).JSON(groupActivity)
 }
 
+func (controller *GroupActivityController) LeaveGroupActivityHandler(c *fiber.Ctx) error {
+	request := activity.LeaveGroupActivityRequest{}
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid request.")
+	}
+
+	user := c.Locals("user").(*jwt.Token)
+	claims, ok := user.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).Send(nil)
+	}
+
+	userId := claims["id"].(string)
+
+	err := controller.GroupActivityRepo.RemoveUserFromActivityList(request.ActivityId, userId, storage.ActivityListTypeJoined)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).Send(nil)
+}
+
 func (controller *GroupActivityController) GetGroupActivityHandler(c *fiber.Ctx) error {
 	activityId := c.Params("id")
 

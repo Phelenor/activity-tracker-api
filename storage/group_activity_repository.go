@@ -18,6 +18,7 @@ type ActivityListType int
 const (
 	ActivityListTypeConnected ActivityListType = iota
 	ActivityListTypeActive
+	ActivityListTypeJoined
 )
 
 type GroupActivityRepository interface {
@@ -225,6 +226,8 @@ func (repo *groupActivityRepo) AddUserToActivityList(activityId string, userId s
 				groupActivity.ConnectedUsers = append(groupActivity.ConnectedUsers, userId)
 			case ActivityListTypeActive:
 				groupActivity.ActiveUsers = append(groupActivity.ActiveUsers, userId)
+			case ActivityListTypeJoined:
+				groupActivity.JoinedUsers = append(groupActivity.JoinedUsers, userId)
 			}
 
 			activityJSON, err = json.Marshal(&groupActivity)
@@ -275,6 +278,16 @@ func (repo *groupActivityRepo) RemoveUserFromActivityList(activityId string, use
 				index := slices.Index(groupActivity.ActiveUsers, userId)
 				if index != -1 {
 					groupActivity.ActiveUsers = slices.Delete(groupActivity.ActiveUsers, index, index+1)
+				}
+			case ActivityListTypeJoined:
+				index := slices.Index(groupActivity.JoinedUsers, userId)
+				if index != -1 {
+					groupActivity.JoinedUsers = slices.Delete(groupActivity.JoinedUsers, index, index+1)
+				}
+
+				err = repo.redis.SRem(ctx, "user:"+userId+":activities", groupActivity.Id).Err()
+				if err != nil {
+					return err
 				}
 			}
 

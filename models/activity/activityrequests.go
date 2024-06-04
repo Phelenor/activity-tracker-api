@@ -8,3 +8,7 @@ type CreateGroupActivityRequest struct {
 type JoinGroupActivityRequest struct {
 	JoinCode string `json:"joinCode"`
 }
+
+type LeaveGroupActivityRequest struct {
+	ActivityId string `json:"activityId"`
+}
