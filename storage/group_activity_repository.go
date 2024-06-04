@@ -257,7 +257,7 @@ func (repo *groupActivityRepo) RemoveUserFromActivityList(activityId string, use
 			activityJSON, err := tx.Get(ctx, activityId).Bytes()
 			if err != nil {
 				if errors.Is(err, redis.Nil) {
-					return fmt.Errorf("activity with id %s does not exist", activityId)
+					return nil
 				}
 
 				return err
