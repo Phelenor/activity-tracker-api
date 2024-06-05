@@ -139,6 +139,7 @@ func (controller *ActivityWebSocketController) handleIncomingMessage(activityId 
 		}
 
 		err := controller.GroupActivityRepo.RemoveUserFromActivityList(activityId, userId, storage.ActivityListTypeActive)
+		err = controller.GroupActivityRepo.AddUserToActivityList(activityId, userId, storage.ActivityListTypeFinished)
 		if err != nil {
 			return
 		}

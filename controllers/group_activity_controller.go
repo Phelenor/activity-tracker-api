@@ -44,7 +44,7 @@ func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.C
 		Status:         activity.ActivityStatusNotStarted,
 		JoinedUsers:    []string{userId},
 		ConnectedUsers: []string{},
-		StartedUsers:   []string{},
+		FinishedUsers:  []string{},
 		ActiveUsers:    []string{},
 	}
 

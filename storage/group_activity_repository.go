@@ -19,6 +19,7 @@ const (
 	ActivityListTypeConnected ActivityListType = iota
 	ActivityListTypeActive
 	ActivityListTypeJoined
+	ActivityListTypeFinished
 )
 
 type GroupActivityRepository interface {
@@ -226,6 +227,8 @@ func (repo *groupActivityRepo) AddUserToActivityList(activityId string, userId s
 				groupActivity.ConnectedUsers = append(groupActivity.ConnectedUsers, userId)
 			case ActivityListTypeActive:
 				groupActivity.ActiveUsers = append(groupActivity.ActiveUsers, userId)
+			case ActivityListTypeFinished:
+				groupActivity.FinishedUsers = append(groupActivity.FinishedUsers, userId)
 			case ActivityListTypeJoined:
 				groupActivity.JoinedUsers = append(groupActivity.JoinedUsers, userId)
 			}
@@ -279,6 +282,11 @@ func (repo *groupActivityRepo) RemoveUserFromActivityList(activityId string, use
 				if index != -1 {
 					groupActivity.ActiveUsers = slices.Delete(groupActivity.ActiveUsers, index, index+1)
 				}
+			case ActivityListTypeFinished:
+				index := slices.Index(groupActivity.FinishedUsers, userId)
+				if index != -1 {
+					groupActivity.FinishedUsers = slices.Delete(groupActivity.FinishedUsers, index, index+1)
+				}
 			case ActivityListTypeJoined:
 				index := slices.Index(groupActivity.JoinedUsers, userId)
 				if index != -1 {
@@ -331,6 +339,11 @@ func (repo *groupActivityRepo) UpdateActivityStatus(activityId string, status ac
 
 			if groupActivity.Status == activity.ActivityStatusNotStarted && status == activity.ActivityStatusInProgress {
 				groupActivity.ActiveUsers = groupActivity.ConnectedUsers
+			}
+
+			if status == activity.ActivityStatusFinished {
+				groupActivity.FinishedUsers = append(groupActivity.FinishedUsers, groupActivity.ActiveUsers...)
+				groupActivity.ActiveUsers = make([]string, 0)
 			}
 
 			groupActivity.Status = status
