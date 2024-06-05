@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"slices"
 	"time"
 )
@@ -26,7 +27,7 @@ type GroupActivityRepository interface {
 	GetByIDFromDb(id string) (*activity.GroupActivity, error)
 	GetByIDFromRedis(id string) (*activity.GroupActivity, error)
 	GetByJoinCodeFromRedis(id string) (*activity.GroupActivity, error)
-	Insert(dbActivity *activity.GroupActivity) error
+	InsertIntoRedis(dbActivity *activity.GroupActivity) error
 	Delete(id string) error
 	DeleteExpiredActivities() error
 	GetByUserIdFromRedis(userId string) ([]*activity.GroupActivity, error)
@@ -47,14 +48,14 @@ func NewGroupActivityRepository(db *gorm.DB, redis *redis.Client) GroupActivityR
 var ctx = context.Background()
 
 func (repo *groupActivityRepo) GetByIDFromDb(id string) (*activity.GroupActivity, error) {
-	var groupActivityDb activity.GroupActivity
+	var groupActivityDb activity.DbGroupActivity
 	result := repo.db.First(&groupActivityDb, "id = ?", id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return &groupActivityDb, nil
+	return groupActivityDb.ToGroupActivity(), nil
 }
 
 func (repo *groupActivityRepo) GetByIDFromRedis(id string) (*activity.GroupActivity, error) {
@@ -82,16 +83,7 @@ func (repo *groupActivityRepo) GetByJoinCodeFromRedis(joinCode string) (*activit
 	return repo.GetByIDFromRedis(id)
 }
 
-func (repo *groupActivityRepo) Insert(groupActivity *activity.GroupActivity) error {
-	if groupActivity.Status == activity.ActivityStatusFinished {
-		err := repo.deleteActivityRefsFromRedis(groupActivity)
-		if err != nil {
-			return err
-		}
-
-		return repo.db.Create(groupActivity).Error
-	}
-
+func (repo *groupActivityRepo) InsertIntoRedis(groupActivity *activity.GroupActivity) error {
 	activityJSON, err := json.Marshal(groupActivity)
 	if err != nil {
 		return err
@@ -367,7 +359,13 @@ func (repo *groupActivityRepo) UpdateActivityStatus(activityId string, status ac
 						}
 					}
 
-					repo.db.Create(groupActivity)
+					err = repo.db.Clauses(clause.OnConflict{
+						UpdateAll: true,
+					}).Create(groupActivity.ToDbGroupActivity()).Error
+
+					if err != nil {
+						log.Error("error adding activity to db: ", err)
+					}
 				}
 
 				return nil

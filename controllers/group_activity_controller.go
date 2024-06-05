@@ -49,7 +49,7 @@ func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.C
 		ActiveUsers:    []string{},
 	}
 
-	err = controller.GroupActivityRepo.Insert(&groupActivity)
+	err = controller.GroupActivityRepo.InsertIntoRedis(&groupActivity)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Error while saving activity.")
 	}
@@ -80,7 +80,7 @@ func (controller *GroupActivityController) JoinGroupActivityHandler(c *fiber.Ctx
 		groupActivity.JoinedUsers = append(groupActivity.JoinedUsers, userId)
 	}
 
-	err = controller.GroupActivityRepo.Insert(groupActivity)
+	err = controller.GroupActivityRepo.InsertIntoRedis(groupActivity)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString(".")
 	}
