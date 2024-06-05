@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"math/rand"
 	"slices"
+	"sync"
 )
 
 type GroupActivityController struct {
@@ -118,6 +119,37 @@ func (controller *GroupActivityController) GetGroupActivityHandler(c *fiber.Ctx)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(groupActivity)
+}
+
+func (controller *GroupActivityController) GetGroupActivityOverviewHandler(c *fiber.Ctx) error {
+	activityId := c.Params("id")
+
+	groupActivity, err := controller.GroupActivityRepo.GetByIDFromDb(activityId)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).Send(nil)
+	}
+
+	groupActivityOverview := activity.GroupActivityOverview{OwnerId: groupActivity.UserOwnerId}
+
+	var wg sync.WaitGroup
+	var mutex sync.Mutex
+
+	for _, userId := range groupActivity.FinishedUsers {
+		wg.Add(1)
+		go func(userId string) {
+			defer wg.Done()
+			user, err := controller.UserRepo.GetByID(userId)
+			if err == nil {
+				mutex.Lock()
+				groupActivityOverview.Users = append(groupActivityOverview.Users, *user)
+				mutex.Unlock()
+			}
+		}(userId)
+	}
+
+	wg.Wait()
+
+	return c.Status(fiber.StatusOK).JSON(groupActivityOverview)
 }
 
 func (controller *GroupActivityController) DeleteGroupActivityHandler(c *fiber.Ctx) error {
