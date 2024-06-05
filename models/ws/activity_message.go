@@ -17,7 +17,8 @@ type UserDataUpdate struct {
 }
 
 type ControlAction struct {
-	Action ActivityControl `json:"action"`
+	Action   ActivityControl        `json:"action"`
+	Activity activity.GroupActivity `json:"activity"`
 }
 
 type UserFinish struct {

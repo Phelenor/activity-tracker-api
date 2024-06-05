@@ -126,7 +126,9 @@ func (controller *ActivityWebSocketController) handleIncomingMessage(activityId 
 		if err != nil {
 			log.Error("Error updating activity status: ", err)
 		}
-	case "user_finish_signal":
+
+		controller.broadcastActivityUpdate(activityId)
+	case "user_finish":
 		controller.broadcastMessage(activityId, userId, msg)
 
 		var userFinish ws.UserFinish
@@ -139,6 +141,8 @@ func (controller *ActivityWebSocketController) handleIncomingMessage(activityId 
 		if err != nil {
 			return
 		}
+
+		controller.broadcastActivityUpdate(activityId)
 	default:
 		log.Error("Unknown message type: ", msgType.Type)
 	}

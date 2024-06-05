@@ -329,6 +329,12 @@ func (repo *groupActivityRepo) UpdateActivityStatus(activityId string, status ac
 				return err
 			}
 
+			if groupActivity.Status == activity.ActivityStatusNotStarted && status == activity.ActivityStatusInProgress {
+				groupActivity.ActiveUsers = groupActivity.ConnectedUsers
+			}
+
+			groupActivity.Status = status
+
 			activityJSON, err = json.Marshal(&groupActivity)
 			if err != nil {
 				return err
