@@ -112,6 +112,7 @@ func (controller *ActivityWebSocketController) handleIncomingMessage(activityId 
 
 		switch controlAction.Action {
 		case ws.ActivityControlResume:
+			fallthrough
 		case ws.ActivityControlStart:
 			status = activity.ActivityStatusInProgress
 		case ws.ActivityControlPause:
