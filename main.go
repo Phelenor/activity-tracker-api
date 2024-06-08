@@ -11,6 +11,7 @@ import (
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
@@ -32,6 +33,7 @@ func main() {
 	userRepository := storage.NewUserRepository(db)
 	activityRepository := storage.NewActivityRepository(db)
 	groupActivityRepository := storage.NewGroupActivityRepository(db, redisStorage)
+	gymRepository := storage.NewGymRepository(db)
 
 	s3Client, s3PresignClient := initS3()
 
@@ -41,6 +43,7 @@ func main() {
 		userRepository,
 		activityRepository,
 		groupActivityRepository,
+		gymRepository,
 		s3Client,
 		s3PresignClient,
 	)
@@ -50,6 +53,7 @@ func startFiberServer(
 	userRepository storage.UserRepository,
 	activityRepository storage.ActivityRepository,
 	groupActivityRepository storage.GroupActivityRepository,
+	gymRepository storage.GymRepository,
 	s3Client *s3.Client,
 	s3PresignClient *s3.PresignClient,
 ) {
@@ -60,11 +64,16 @@ func startFiberServer(
 	activityController := controllers.ActivityController{ActivityRepo: activityRepository, S3Client: s3Client, S3PresignClient: s3PresignClient}
 	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository, UserRepo: userRepository}
 	activityWebSocketController := controllers.NewWebSocketController(groupActivityRepository)
+	gymController := controllers.NewGymController(gymRepository)
 
 	app.Use(logger.New())
+	app.Use(cors.New())
 
 	app.Post("/api/login", authController.LoginHandler)
 	app.Post("/api/token-refresh", authController.TokenRefreshHandler)
+
+	app.Post("/api/gym/register", gymController.RegisterHandler)
+	app.Post("/api/gym/login", gymController.LoginHandler)
 
 	app.Use(jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(os.Getenv("JWT_SECRET"))},
@@ -84,8 +93,9 @@ func startFiberServer(
 	app.Get("/api/group-activities/:id", groupActivityController.GetGroupActivityHandler)
 	app.Delete("/api/group-activities/:id", groupActivityController.DeleteGroupActivityHandler)
 	app.Get("/api/group-activities", groupActivityController.GetScheduledActivitiesHandler)
-	app.Get("/ws/activity/:id", activityWebSocketController.WebSocketUpgradeHandler, websocket.New(activityWebSocketController.WebSocketMessageHandler))
 	app.Get("/api/group-activity-overview/:id", groupActivityController.GetGroupActivityOverviewHandler)
+
+	app.Get("/ws/activity/:id", activityWebSocketController.WebSocketUpgradeHandler, websocket.New(activityWebSocketController.WebSocketMessageHandler))
 
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {
 		log.Fatal(err)

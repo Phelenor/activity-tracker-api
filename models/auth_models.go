@@ -21,3 +21,19 @@ type UpdateUserDataRequest struct {
 	Weight         int    `json:"weight"`
 	BirthTimestamp int64  `json:"birthTimestamp"`
 }
+
+type GymRegisterRequest struct {
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"passwordHash"`
+}
+
+type GymLoginRequest struct {
+	Email        string `json:"email"`
+	PasswordHash string `json:"passwordHash"`
+}
+
+type GymTokenResponse struct {
+	GymAccount  GymAccount `json:"gymAccount"`
+	AccessToken string     `json:"accessToken"`
+}

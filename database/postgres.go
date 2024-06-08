@@ -26,7 +26,7 @@ func ConnectPostgresDb() *gorm.DB {
 		log.Fatal("Failed to connect to database.\n", err)
 	}
 
-	if err := db.AutoMigrate(&models.User{}, &activity.DbActivity{}, &activity.DbGroupActivity{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &activity.DbActivity{}, &activity.DbGroupActivity{}, &models.GymAccount{}); err != nil {
 		return nil
 	}
 

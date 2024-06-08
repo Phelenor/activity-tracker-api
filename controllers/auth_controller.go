@@ -3,39 +3,14 @@ package controllers
 import (
 	"activity-tracker-api/models"
 	"activity-tracker-api/storage"
+	"activity-tracker-api/util"
 	"context"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/api/idtoken"
 	"os"
-	"time"
 )
-
-func buildAccessToken(user models.User) (string, error) {
-	claims := jwt.MapClaims{
-		"id":    user.Id,
-		"email": user.Email,
-		"exp":   time.Now().Add(time.Hour * 24).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-
-	return signed, err
-}
-
-func buildRefreshToken(user models.User) (string, error) {
-	claims := jwt.MapClaims{
-		"id":  user.Id,
-		"exp": time.Now().Add(time.Hour * 24 * 14).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-
-	return signed, err
-}
 
 type AuthController struct {
 	UserRepo storage.UserRepository
@@ -88,12 +63,12 @@ func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
-	accessToken, err := buildAccessToken(user)
+	accessToken, err := util.BuildAccessToken(user.Id, user.Email)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
-	refreshToken, err := buildRefreshToken(user)
+	refreshToken, err := util.BuildRefreshToken(user.Id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
@@ -141,12 +116,12 @@ func (controller *AuthController) TokenRefreshHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("User not found.")
 	}
 
-	accessToken, err := buildAccessToken(*user)
+	accessToken, err := util.BuildAccessToken((*user).Id, (*user).Email)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
 
-	refreshToken, err := buildRefreshToken(*user)
+	refreshToken, err := util.BuildRefreshToken((*user).Id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Server error.")
 	}
