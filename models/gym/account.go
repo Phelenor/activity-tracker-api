@@ -1,4 +1,4 @@
-package models
+package gym
 
 type GymAccount struct {
 	Id           string `json:"id" gorm:"primaryKey"`

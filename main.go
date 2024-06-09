@@ -33,7 +33,8 @@ func main() {
 	userRepository := storage.NewUserRepository(db)
 	activityRepository := storage.NewActivityRepository(db)
 	groupActivityRepository := storage.NewGroupActivityRepository(db, redisStorage)
-	gymRepository := storage.NewGymRepository(db)
+	gymAccountRepository := storage.NewGymAccountRepository(db)
+	gymEquipmentRepository := storage.NewGymEquipmentRepository(db)
 
 	s3Client, s3PresignClient := initS3()
 
@@ -43,7 +44,8 @@ func main() {
 		userRepository,
 		activityRepository,
 		groupActivityRepository,
-		gymRepository,
+		gymAccountRepository,
+		gymEquipmentRepository,
 		s3Client,
 		s3PresignClient,
 	)
@@ -53,7 +55,8 @@ func startFiberServer(
 	userRepository storage.UserRepository,
 	activityRepository storage.ActivityRepository,
 	groupActivityRepository storage.GroupActivityRepository,
-	gymRepository storage.GymRepository,
+	gymAccountRepository storage.GymAccountRepository,
+	gymEquipmentRepository storage.GymEquipmentRepository,
 	s3Client *s3.Client,
 	s3PresignClient *s3.PresignClient,
 ) {
@@ -64,7 +67,7 @@ func startFiberServer(
 	activityController := controllers.ActivityController{ActivityRepo: activityRepository, S3Client: s3Client, S3PresignClient: s3PresignClient}
 	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository, UserRepo: userRepository}
 	activityWebSocketController := controllers.NewWebSocketController(groupActivityRepository)
-	gymController := controllers.NewGymController(gymRepository)
+	gymController := controllers.NewGymController(gymAccountRepository, gymEquipmentRepository)
 
 	app.Use(logger.New())
 	app.Use(cors.New())
@@ -78,6 +81,9 @@ func startFiberServer(
 	app.Use(jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(os.Getenv("JWT_SECRET"))},
 	}))
+
+	app.Get("/api/gym/equipment", gymController.GetEquipmentHandler)
+	app.Post("/api/gym/equipment", gymController.CreateEquipmentHandler)
 
 	app.Post("/api/update-user", userController.UpdateUserDataHandler)
 	app.Post("/api/delete-account", userController.DeleteAccountHandler)

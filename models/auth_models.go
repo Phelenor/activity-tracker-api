@@ -1,5 +1,7 @@
 package models
 
+import "activity-tracker-api/models/gym"
+
 type LoginRequest struct {
 	IdToken string `json:"idToken"`
 	Nonce   string `json:"nonce"`
@@ -34,6 +36,6 @@ type GymLoginRequest struct {
 }
 
 type GymTokenResponse struct {
-	GymAccount  GymAccount `json:"gymAccount"`
-	AccessToken string     `json:"accessToken"`
+	GymAccount  gym.GymAccount `json:"gymAccount"`
+	AccessToken string         `json:"accessToken"`
 }
