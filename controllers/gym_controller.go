@@ -68,7 +68,7 @@ func (controller *GymController) LoginHandler(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func (controller *GymController) GetEquipmentHandler(c *fiber.Ctx) error {
+func (controller *GymController) GetAllEquipmentHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
@@ -77,7 +77,20 @@ func (controller *GymController) GetEquipmentHandler(c *fiber.Ctx) error {
 
 	userId := claims["id"].(string)
 
-	equipment, err := controller.GymEquipmentRepository.GetForUserId(userId)
+	nameQuery := c.Query("q", "")
+
+	equipment, err := controller.GymEquipmentRepository.GetForUserId(userId, nameQuery)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).Send(nil)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(equipment)
+}
+
+func (controller *GymController) GetEquipmentHandler(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	equipment, err := controller.GymEquipmentRepository.GetById(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).Send(nil)
 	}
@@ -99,7 +112,7 @@ func (controller *GymController) CreateEquipmentHandler(c *fiber.Ctx) error {
 
 	userId := claims["id"].(string)
 
-	equipment := gym.Equipment{
+	equipment := gym.GymEquipment{
 		Id:           uuid.New().String(),
 		OwnerId:      userId,
 		Name:         request.Name,

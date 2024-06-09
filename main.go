@@ -82,8 +82,9 @@ func startFiberServer(
 		SigningKey: jwtware.SigningKey{Key: []byte(os.Getenv("JWT_SECRET"))},
 	}))
 
-	app.Get("/api/gym/equipment", gymController.GetEquipmentHandler)
+	app.Get("/api/gym/equipment", gymController.GetAllEquipmentHandler)
 	app.Post("/api/gym/equipment", gymController.CreateEquipmentHandler)
+	app.Get("/api/gym/equipment/:id", gymController.GetEquipmentHandler)
 
 	app.Post("/api/update-user", userController.UpdateUserDataHandler)
 	app.Post("/api/delete-account", userController.DeleteAccountHandler)

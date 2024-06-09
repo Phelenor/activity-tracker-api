@@ -32,7 +32,7 @@ func ConnectPostgresDb() *gorm.DB {
 		&activity.DbActivity{},
 		&activity.DbGroupActivity{},
 		&gym.GymAccount{},
-		&gym.Equipment{},
+		&gym.GymEquipment{},
 	); err != nil {
 		return nil
 	}
