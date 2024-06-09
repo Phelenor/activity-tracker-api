@@ -5,7 +5,7 @@ type Equipment struct {
 	OwnerId      string `json:"ownerId"`
 	Name         string `json:"name"`
 	Description  string `json:"description"`
-	ImageUrl     string `json:"imageUrl,omitempty"`
+	ImageUrl     string `json:"imageUrl"`
 	VideoUrl     string `json:"VideoUrl,omitempty"`
 	ActivityType string `json:"activityType"`
 }
@@ -13,7 +13,7 @@ type Equipment struct {
 type CreateEquipmentRequest struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
-	ImageUrl     string `json:"imageUrl,omitempty"`
+	ImageUrl     string `json:"imageUrl"`
 	VideoUrl     string `json:"VideoUrl,omitempty"`
 	ActivityType string `json:"activityType"`
 }
