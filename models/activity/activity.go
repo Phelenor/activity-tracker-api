@@ -17,7 +17,8 @@ type Activity struct {
 	Weather                   *WeatherInfo              `json:"weather"`
 	HeartRateZoneDistribution HeartRateZoneDistribution `json:"heartRateZoneDistribution"`
 	Goals                     Goals                     `json:"goals"`
-	ImageUrl                  string                    `json:"imageUrl"`
+	ImageUrl                  string                    `json:"imageUrl,omitempty"`
+	IsGymActivity             bool                      `json:"isGymActivity"`
 }
 
 type DbActivity struct {
@@ -38,4 +39,5 @@ type DbActivity struct {
 	Weather                   *WeatherInfo              `json:"weather" gorm:"type:jsonb"`
 	HeartRateZoneDistribution HeartRateZoneDistribution `json:"heartRateZoneDistribution" gorm:"type:jsonb"`
 	Goals                     Goals                     `json:"goals" gorm:"type:jsonb"`
+	IsGymActivity             bool                      `json:"isGymActivity" gorm:"type:bool"`
 }

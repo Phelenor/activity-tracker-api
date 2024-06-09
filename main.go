@@ -68,6 +68,7 @@ func startFiberServer(
 	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository, UserRepo: userRepository}
 	activityWebSocketController := controllers.NewWebSocketController(groupActivityRepository)
 	gymController := controllers.NewGymController(gymAccountRepository, gymEquipmentRepository)
+	gymWebSocketController := controllers.NewGymWebSocketController(gymEquipmentRepository)
 
 	app.Use(logger.New())
 	app.Use(cors.New())
@@ -81,10 +82,6 @@ func startFiberServer(
 	app.Use(jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(os.Getenv("JWT_SECRET"))},
 	}))
-
-	app.Get("/api/gym/equipment", gymController.GetAllEquipmentHandler)
-	app.Post("/api/gym/equipment", gymController.CreateEquipmentHandler)
-	app.Get("/api/gym/equipment/:id", gymController.GetEquipmentHandler)
 
 	app.Post("/api/update-user", userController.UpdateUserDataHandler)
 	app.Post("/api/delete-account", userController.DeleteAccountHandler)
@@ -101,8 +98,12 @@ func startFiberServer(
 	app.Delete("/api/group-activities/:id", groupActivityController.DeleteGroupActivityHandler)
 	app.Get("/api/group-activities", groupActivityController.GetScheduledActivitiesHandler)
 	app.Get("/api/group-activity-overview/:id", groupActivityController.GetGroupActivityOverviewHandler)
-
 	app.Get("/ws/activity/:id", activityWebSocketController.WebSocketUpgradeHandler, websocket.New(activityWebSocketController.WebSocketMessageHandler))
+
+	app.Get("/api/gym/equipment", gymController.GetAllEquipmentHandler)
+	app.Post("/api/gym/equipment", gymController.CreateEquipmentHandler)
+	app.Get("/api/gym/equipment/:id", gymController.GetEquipmentHandler)
+	app.Get("/ws/activity/gym/:id", gymWebSocketController.WebSocketUpgradeHandler, websocket.New(gymWebSocketController.WebSocketMessageHandler))
 
 	if err := app.Listen(":" + os.Getenv("API_PORT")); err != nil {
 		log.Fatal(err)

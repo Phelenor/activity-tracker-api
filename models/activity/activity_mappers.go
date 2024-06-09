@@ -19,6 +19,7 @@ func (activity Activity) ToDbActivity(id string, userId string) DbActivity {
 		Weather:                   activity.Weather,
 		HeartRateZoneDistribution: activity.HeartRateZoneDistribution,
 		Goals:                     activity.Goals,
+		IsGymActivity:             activity.IsGymActivity,
 	}
 }
 
@@ -40,6 +41,7 @@ func (dbActivity DbActivity) ToActivity(imageUrl string) Activity {
 		Weather:                   dbActivity.Weather,
 		HeartRateZoneDistribution: dbActivity.HeartRateZoneDistribution,
 		Goals:                     dbActivity.Goals,
+		IsGymActivity:             dbActivity.IsGymActivity,
 		ImageUrl:                  imageUrl,
 	}
 }

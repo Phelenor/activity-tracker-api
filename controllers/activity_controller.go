@@ -101,7 +101,11 @@ func (controller *ActivityController) GetActivityHandler(c *fiber.Ctx) error {
 
 	imageKey := fmt.Sprintf("images/%s", dbActivity.Id)
 	bucketName := os.Getenv("S3_BUCKET_NAME")
-	url, err := generatePresignedURL(controller.S3PresignClient, bucketName, imageKey, 2*60)
+
+	url := ""
+	if !dbActivity.IsGymActivity {
+		url, err = generatePresignedURL(controller.S3PresignClient, bucketName, imageKey, 2*60)
+	}
 
 	return c.Status(fiber.StatusOK).JSON(dbActivity.ToActivity(url))
 }
@@ -152,7 +156,13 @@ func (controller *ActivityController) GetActivitiesHandler(c *fiber.Ctx) error {
 			defer wg.Done()
 			imageKey := fmt.Sprintf("images/%s", dbActivity.Id)
 			bucketName := os.Getenv("S3_BUCKET_NAME")
-			url, err := generatePresignedURL(controller.S3PresignClient, bucketName, imageKey, 2*60)
+
+			url := ""
+			var err error = nil
+			if !dbActivity.IsGymActivity {
+				url, err = generatePresignedURL(controller.S3PresignClient, bucketName, imageKey, 2*60)
+			}
+
 			urlChan <- struct {
 				index int
 				url   string
