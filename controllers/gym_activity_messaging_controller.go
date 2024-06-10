@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"activity-tracker-api/gymSimulator"
+	"activity-tracker-api/models"
 	"activity-tracker-api/models/ws"
 	"activity-tracker-api/storage"
 	"encoding/json"
@@ -15,16 +16,18 @@ import (
 )
 
 type GymActivityWebSocketController struct {
-	repository       storage.GymEquipmentRepository
+	gymRepo          storage.GymEquipmentRepository
+	userRepo         storage.UserRepository
 	connectionsMutex sync.Mutex
 	connections      map[string]*websocket.Conn
 	simulators       map[string]*gymSimulator.GymEquipmentSimulator
 	simulatorMutex   sync.Mutex
 }
 
-func NewGymWebSocketController(repository storage.GymEquipmentRepository) *GymActivityWebSocketController {
+func NewGymWebSocketController(gymRepo storage.GymEquipmentRepository, userRepo storage.UserRepository) *GymActivityWebSocketController {
 	return &GymActivityWebSocketController{
-		repository:  repository,
+		gymRepo:     gymRepo,
+		userRepo:    userRepo,
 		connections: make(map[string]*websocket.Conn),
 		simulators:  make(map[string]*gymSimulator.GymEquipmentSimulator),
 	}
@@ -40,7 +43,7 @@ func (controller *GymActivityWebSocketController) WebSocketUpgradeHandler(c *fib
 	userId := claims["id"].(string)
 	equipmentId := c.Params("id")
 
-	equipment, err := controller.repository.GetById(equipmentId)
+	equipment, err := controller.gymRepo.GetById(equipmentId)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).Send(nil)
 	}
@@ -49,6 +52,21 @@ func (controller *GymActivityWebSocketController) WebSocketUpgradeHandler(c *fib
 		c.Locals("userId", userId)
 		c.Locals("equipmentId", strings.Clone(equipmentId))
 		c.Locals("gymId", equipment.OwnerId)
+		c.Locals("isGym", false)
+		return c.Next()
+	}
+
+	return fiber.ErrUpgradeRequired
+}
+
+func (controller *GymActivityWebSocketController) WebSocketUpgradeHandlerUnauthorized(c *fiber.Ctx) error {
+	gymId := c.Params("id")
+
+	if websocket.IsWebSocketUpgrade(c) {
+		c.Locals("userId", "")
+		c.Locals("equipmentId", "")
+		c.Locals("gymId", gymId)
+		c.Locals("isGym", true)
 		return c.Next()
 	}
 
@@ -56,33 +74,54 @@ func (controller *GymActivityWebSocketController) WebSocketUpgradeHandler(c *fib
 }
 
 func (controller *GymActivityWebSocketController) WebSocketMessageHandler(conn *websocket.Conn) {
+	userId := conn.Locals("userId").(string)
 	equipmentId := conn.Locals("equipmentId").(string)
 	gymId := conn.Locals("gymId").(string)
+	isGym := conn.Locals("isGym").(bool)
+
+	id := equipmentId
+	if isGym {
+		id = gymId
+	}
 
 	controller.connectionsMutex.Lock()
-	controller.connections[equipmentId] = conn
+	controller.connections[id] = conn
 	controller.connectionsMutex.Unlock()
 
-	controller.simulatorMutex.Lock()
-	controller.simulators[equipmentId] = gymSimulator.NewGymEquipmentSimulator()
-	controller.simulatorMutex.Unlock()
+	if !isGym {
+		controller.simulatorMutex.Lock()
+		controller.simulators[equipmentId] = gymSimulator.NewGymEquipmentSimulator()
+		controller.simulatorMutex.Unlock()
 
-	go controller.runSimulator(equipmentId, gymId)
+		user, err := controller.userRepo.GetByID(userId)
+		if err != nil {
+			return
+		}
 
-	defer func() {
+		equipment, err := controller.gymRepo.GetById(equipmentId)
+		if err != nil {
+			return
+		}
+
+		go controller.runSimulator(equipmentId, equipment.Name, gymId, *user)
+	}
+
+	defer func(isGym bool) {
 		controller.connectionsMutex.Lock()
-		delete(controller.connections, equipmentId)
+		delete(controller.connections, id)
 		controller.connectionsMutex.Unlock()
 
-		controller.simulatorMutex.Lock()
-		delete(controller.simulators, equipmentId)
-		controller.simulatorMutex.Unlock()
+		if !isGym {
+			controller.simulatorMutex.Lock()
+			delete(controller.simulators, equipmentId)
+			controller.simulatorMutex.Unlock()
+		}
 
 		err := conn.Close()
 		if err != nil {
 			return
 		}
-	}()
+	}(isGym)
 
 	for {
 		_, msg, err := conn.ReadMessage()
@@ -139,7 +178,7 @@ func (controller *GymActivityWebSocketController) handleIncomingMessage(equipmen
 	}
 }
 
-func (controller *GymActivityWebSocketController) runSimulator(equipmentId, gymId string) {
+func (controller *GymActivityWebSocketController) runSimulator(equipmentId, equipmentName, gymId string, user models.User) {
 	controller.simulatorMutex.Lock()
 	simulator, exists := controller.simulators[equipmentId]
 	controller.simulatorMutex.Unlock()
@@ -159,6 +198,10 @@ func (controller *GymActivityWebSocketController) runSimulator(equipmentId, gymI
 		}
 
 		dataSnapshot := simulator.GenerateDataSnapshot()
+		dataSnapshot.UserName = user.DisplayName
+		dataSnapshot.UserImageUrl = user.ImageUrl
+		dataSnapshot.EquipmentId = equipmentId
+		dataSnapshot.EquipmentName = equipmentName
 
 		msg, err := json.Marshal(dataSnapshot)
 		if err != nil {

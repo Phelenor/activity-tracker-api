@@ -68,7 +68,7 @@ func startFiberServer(
 	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository, UserRepo: userRepository}
 	activityWebSocketController := controllers.NewWebSocketController(groupActivityRepository)
 	gymController := controllers.NewGymController(gymAccountRepository, gymEquipmentRepository)
-	gymWebSocketController := controllers.NewGymWebSocketController(gymEquipmentRepository)
+	gymWebSocketController := controllers.NewGymWebSocketController(gymEquipmentRepository, userRepository)
 
 	app.Use(logger.New())
 	app.Use(cors.New())
@@ -78,6 +78,8 @@ func startFiberServer(
 
 	app.Post("/api/gym/register", gymController.RegisterHandler)
 	app.Post("/api/gym/login", gymController.LoginHandler)
+
+	app.Get("/ws/activity/gym-dashboard/:id", gymWebSocketController.WebSocketUpgradeHandlerUnauthorized, websocket.New(gymWebSocketController.WebSocketMessageHandler))
 
 	app.Use(jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(os.Getenv("JWT_SECRET"))},

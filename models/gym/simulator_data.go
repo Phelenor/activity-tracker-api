@@ -12,4 +12,8 @@ type SimulatorDataSnapshot struct {
 	MaxHeartRate  int     `json:"maxHeartRate"`
 	ElevationGain int     `json:"elevationGain"`
 	Calories      int     `json:"calories"`
+	EquipmentId   string  `json:"equipmentId"`
+	EquipmentName string  `json:"equipmentName"`
+	UserName      string  `json:"userName"`
+	UserImageUrl  string  `json:"userImageUrl"`
 }
