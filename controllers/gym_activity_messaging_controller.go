@@ -188,13 +188,27 @@ func (controller *GymActivityWebSocketController) runSimulator(equipmentId, equi
 	}
 
 	for {
+		if simulator.IsFinished() {
+			var FinishSignal struct {
+				EquipmentId string `json:"equipmentId"`
+			}
+
+			FinishSignal.EquipmentId = equipmentId
+			msg, _ := json.Marshal(FinishSignal)
+
+			if conn, ok := controller.connections[gymId]; ok {
+				err := conn.WriteMessage(websocket.TextMessage, msg)
+				if err != nil {
+					log.Error("Error sending finish signal to gym dashboard: ", err)
+				}
+			}
+
+			break
+		}
+
 		if !simulator.IsActive() {
 			time.Sleep(1 * time.Second)
 			continue
-		}
-
-		if simulator.IsFinished() {
-			break
 		}
 
 		dataSnapshot := simulator.GenerateDataSnapshot()

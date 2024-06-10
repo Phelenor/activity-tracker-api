@@ -67,7 +67,7 @@ func (s *GymEquipmentSimulator) GenerateDataSnapshot() gym.SimulatorDataSnapshot
 
 	s.data.Distance += int(s.data.Speed * 1000 / 3600)
 
-	s.data.HeartRate = 120 + rand.Intn(10) - 5
+	s.data.HeartRate = 120 + rand.Intn(20) - 10
 
 	if s.data.HeartRate > s.data.MaxHeartRate {
 		s.data.MaxHeartRate = s.data.HeartRate
