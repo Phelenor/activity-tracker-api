@@ -1,4 +1,4 @@
-package gymSimulator
+package gym_simulator
 
 import (
 	"activity-tracker-api/models/gym"

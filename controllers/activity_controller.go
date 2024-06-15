@@ -23,6 +23,14 @@ type ActivityController struct {
 	S3PresignClient *s3.PresignClient
 }
 
+func NewActivityController(repo storage.ActivityRepository, s3Client *s3.Client, s3PresignClient *s3.PresignClient) *ActivityController {
+	return &ActivityController{
+		ActivityRepo:    repo,
+		S3Client:        s3Client,
+		S3PresignClient: s3PresignClient,
+	}
+}
+
 func (controller *ActivityController) PostActivityHandler(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims, ok := user.Claims.(jwt.MapClaims)

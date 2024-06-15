@@ -16,6 +16,13 @@ type GroupActivityController struct {
 	UserRepo          storage.UserRepository
 }
 
+func NewGroupActivityController(groupActivityRepo storage.GroupActivityRepository, userRepo storage.UserRepository) *GroupActivityController {
+	return &GroupActivityController{
+		GroupActivityRepo: groupActivityRepo,
+		UserRepo:          userRepo,
+	}
+}
+
 func (controller *GroupActivityController) CreateGroupActivityHandler(c *fiber.Ctx) error {
 	request := activity.CreateGroupActivityRequest{}
 	if err := c.BodyParser(&request); err != nil {

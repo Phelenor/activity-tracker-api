@@ -62,10 +62,10 @@ func startFiberServer(
 ) {
 	app := fiber.New()
 
-	authController := controllers.AuthController{UserRepo: userRepository}
-	userController := controllers.UserController{UserRepo: userRepository}
-	activityController := controllers.ActivityController{ActivityRepo: activityRepository, S3Client: s3Client, S3PresignClient: s3PresignClient}
-	groupActivityController := controllers.GroupActivityController{GroupActivityRepo: groupActivityRepository, UserRepo: userRepository}
+	authController := controllers.NewAuthController(userRepository)
+	userController := controllers.NewUserController(userRepository)
+	activityController := controllers.NewActivityController(activityRepository, s3Client, s3PresignClient)
+	groupActivityController := controllers.NewGroupActivityController(groupActivityRepository, userRepository)
 	activityWebSocketController := controllers.NewWebSocketController(groupActivityRepository)
 	gymController := controllers.NewGymController(gymAccountRepository, gymEquipmentRepository)
 	gymWebSocketController := controllers.NewGymWebSocketController(gymEquipmentRepository, userRepository)

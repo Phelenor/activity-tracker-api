@@ -11,6 +11,12 @@ type UserController struct {
 	UserRepo storage.UserRepository
 }
 
+func NewUserController(repository storage.UserRepository) *UserController {
+	return &UserController{
+		UserRepo: repository,
+	}
+}
+
 func (controller *UserController) UpdateUserDataHandler(c *fiber.Ctx) error {
 	request := models.UpdateUserDataRequest{}
 	if err := c.BodyParser(&request); err != nil {

@@ -16,6 +16,12 @@ type AuthController struct {
 	UserRepo storage.UserRepository
 }
 
+func NewAuthController(repository storage.UserRepository) *AuthController {
+	return &AuthController{
+		UserRepo: repository,
+	}
+}
+
 func (controller *AuthController) LoginHandler(c *fiber.Ctx) error {
 	request := models.LoginRequest{}
 	if err := c.BodyParser(&request); err != nil {

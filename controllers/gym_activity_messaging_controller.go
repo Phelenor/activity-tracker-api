@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"activity-tracker-api/gymSimulator"
+	"activity-tracker-api/gym_simulator"
 	"activity-tracker-api/models"
 	"activity-tracker-api/models/ws"
 	"activity-tracker-api/storage"
@@ -20,7 +20,7 @@ type GymActivityWebSocketController struct {
 	userRepo         storage.UserRepository
 	connectionsMutex sync.Mutex
 	connections      map[string]*websocket.Conn
-	simulators       map[string]*gymSimulator.GymEquipmentSimulator
+	simulators       map[string]*gym_simulator.GymEquipmentSimulator
 	simulatorMutex   sync.Mutex
 }
 
@@ -29,7 +29,7 @@ func NewGymWebSocketController(gymRepo storage.GymEquipmentRepository, userRepo 
 		gymRepo:     gymRepo,
 		userRepo:    userRepo,
 		connections: make(map[string]*websocket.Conn),
-		simulators:  make(map[string]*gymSimulator.GymEquipmentSimulator),
+		simulators:  make(map[string]*gym_simulator.GymEquipmentSimulator),
 	}
 }
 
@@ -90,7 +90,7 @@ func (controller *GymActivityWebSocketController) WebSocketMessageHandler(conn *
 
 	if !isGym {
 		controller.simulatorMutex.Lock()
-		controller.simulators[equipmentId] = gymSimulator.NewGymEquipmentSimulator()
+		controller.simulators[equipmentId] = gym_simulator.NewGymEquipmentSimulator()
 		controller.simulatorMutex.Unlock()
 
 		user, err := controller.userRepo.GetByID(userId)
